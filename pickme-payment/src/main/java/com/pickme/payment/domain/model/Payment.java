@@ -55,6 +55,9 @@ public class Payment implements com.pickme.common.event.DomainEventProvider {
     }
 
     public void complete(PgResponse pgResponse) {
+        if (!pgResponse.isSuccess()) {
+            throw new IllegalArgumentException("PG 승인 실패 응답으로 결제를 완료할 수 없습니다");
+        }
         changeStatus(PaymentStatus.COMPLETED);
         this.pgTransactionId = pgResponse.getTransactionId();
         this.paidAt = Instant.now();
