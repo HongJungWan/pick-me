@@ -1,7 +1,6 @@
 package com.pickme.settlement.application;
 
 import com.pickme.common.idempotency.IdempotencyFilter;
-import com.pickme.settlement.infrastructure.snapshot.PartnerSnapshotEntity;
 import com.pickme.settlement.infrastructure.snapshot.PartnerSnapshotRepository;
 import com.pickme.settlement.infrastructure.snapshot.SalesSnapshotEntity;
 import com.pickme.settlement.infrastructure.snapshot.SalesSnapshotRepository;
@@ -55,11 +54,7 @@ public class SettlementEventHandler {
                                       BigDecimal commissionRate, String settlementCycle) {
         if (idempotencyFilter.isDuplicate(eventId)) return;
 
-        partnerSnapshotRepository.findById(partnerId).ifPresentOrElse(
-                snapshot -> snapshot.update(companyName, commissionRate, "APPROVED"),
-                () -> partnerSnapshotRepository.save(new PartnerSnapshotEntity(
-                        partnerId, companyName, commissionRate, settlementCycle, "APPROVED"))
-        );
+        partnerSnapshotRepository.upsert(partnerId, companyName, commissionRate, settlementCycle, "APPROVED");
 
         idempotencyFilter.markProcessed(eventId, "PartnerApprovedEvent");
         log.info("파트너 스냅샷 생성: partnerId={}, companyName={}", partnerId, companyName);
