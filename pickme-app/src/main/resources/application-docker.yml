@@ -38,6 +38,9 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     listener:
       ack-mode: manual
+      observation-enabled: true
+    template:
+      observation-enabled: true
   data:
     redis:
       host: redis
