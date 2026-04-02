@@ -28,7 +28,9 @@ public class PartnerService {
         BusinessInfo businessInfo = new BusinessInfo(registrationNumber, companyName, representativeName);
         ContractInfo contractInfo = new ContractInfo(commissionRate, settlementCycle, contractStartDate, contractEndDate);
         Partner partner = Partner.register(businessInfo, contractInfo);
-        return partnerRepository.save(partner);
+        Partner saved = partnerRepository.save(partner);
+        eventPublisher.publishAll(partner);
+        return saved;
     }
 
     @Transactional(readOnly = true)

@@ -23,4 +23,17 @@ public class PgResponse {
     public String getTransactionId() { return transactionId; }
     public boolean isSuccess() { return success; }
     public String getMessage() { return message; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PgResponse that = (PgResponse) o;
+        return success == that.success && java.util.Objects.equals(transactionId, that.transactionId);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(transactionId, success);
+    }
 }

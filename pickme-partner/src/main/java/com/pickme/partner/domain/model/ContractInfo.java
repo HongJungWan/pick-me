@@ -22,4 +22,20 @@ public class ContractInfo {
     public String getSettlementCycle() { return settlementCycle; }
     public LocalDate getContractStartDate() { return contractStartDate; }
     public LocalDate getContractEndDate() { return contractEndDate; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ContractInfo that = (ContractInfo) o;
+        return java.util.Objects.equals(commissionRate, that.commissionRate)
+                && java.util.Objects.equals(settlementCycle, that.settlementCycle)
+                && java.util.Objects.equals(contractStartDate, that.contractStartDate)
+                && java.util.Objects.equals(contractEndDate, that.contractEndDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(commissionRate, settlementCycle, contractStartDate, contractEndDate);
+    }
 }
