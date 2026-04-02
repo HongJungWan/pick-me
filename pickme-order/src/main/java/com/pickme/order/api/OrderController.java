@@ -1,5 +1,6 @@
 package com.pickme.order.api;
 
+import com.pickme.common.ratelimit.RateLimiter;
 import com.pickme.order.api.request.CreateOrderRequest;
 import com.pickme.order.api.response.OrderResponse;
 import com.pickme.order.application.OrderService;
@@ -28,6 +29,7 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    @RateLimiter(key = "'order:' + #request.ordererId()", limit = 10, windowSeconds = 60)
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         Order order = orderService.createOrder(request);

@@ -1,5 +1,6 @@
 package com.pickme.member.api;
 
+import com.pickme.common.ratelimit.RateLimiter;
 import com.pickme.member.api.request.LoginRequest;
 import com.pickme.member.api.request.SignupRequest;
 import com.pickme.member.api.response.MemberResponse;
@@ -28,6 +29,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(MemberResponse.from(member));
     }
 
+    @RateLimiter(key = "'login:' + #request.email()", limit = 5, windowSeconds = 300)
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         TokenResponse token = authService.login(request);
