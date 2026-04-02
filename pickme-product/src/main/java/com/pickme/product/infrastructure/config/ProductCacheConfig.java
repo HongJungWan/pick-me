@@ -32,9 +32,14 @@ public class ProductCacheConfig {
                 .entryTtl(withJitter(Duration.ofMinutes(BASE_TTL_MINUTES)))
                 .disableCachingNullValues();
 
+        RedisCacheConfiguration nullCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .entryTtl(Duration.ofMinutes(NULL_TTL_MINUTES));
+
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
         cacheConfigurations.put("product", defaultConfig.entryTtl(withJitter(Duration.ofMinutes(BASE_TTL_MINUTES))));
-        cacheConfigurations.put("product-null", defaultConfig.entryTtl(Duration.ofMinutes(NULL_TTL_MINUTES)));
+        cacheConfigurations.put("product-null", nullCacheConfig);
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
