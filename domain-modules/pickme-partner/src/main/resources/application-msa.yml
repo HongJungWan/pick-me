@@ -1,0 +1,16 @@
+# Partner 서비스 독립 실행 시 설정 (MSA 전환 후)
+# Kafka, Redis → Config Server로 이관 완료
+
+spring:
+  application:
+    name: pickme-partner-service
+  datasource:
+    url: ${PARTNER_DB_URL:jdbc:postgresql://postgres-partner:5432/partner_db}
+    username: ${PARTNER_DB_USER:pickme}
+    password: ${PARTNER_DB_PASS:pickme1234}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: 8086

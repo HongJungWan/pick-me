@@ -1,0 +1,16 @@
+# Product 서비스 독립 실행 시 설정 (MSA 전환 후)
+# Kafka, Redis → Config Server로 이관 완료
+
+spring:
+  application:
+    name: pickme-product-service
+  datasource:
+    url: ${PRODUCT_DB_URL:jdbc:postgresql://postgres-product:5432/product_db}
+    username: ${PRODUCT_DB_USER:pickme}
+    password: ${PRODUCT_DB_PASS:pickme1234}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: 8084

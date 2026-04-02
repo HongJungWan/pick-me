@@ -140,6 +140,106 @@ services:
       kafka:
         condition: service_healthy
 
+  # ─── 나머지 도메인 서비스 ───
+  pickme-product:
+    build:
+      context: .
+      dockerfile: domain-modules/pickme-product/Dockerfile
+    container_name: pickme-product-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  pickme-member:
+    build:
+      context: .
+      dockerfile: domain-modules/pickme-member/Dockerfile
+    container_name: pickme-member-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  pickme-partner:
+    build:
+      context: .
+      dockerfile: domain-modules/pickme-partner/Dockerfile
+    container_name: pickme-partner-service
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  pickme-notification:
+    build:
+      context: .
+      dockerfile: domain-modules/pickme-notification/Dockerfile
+    container_name: pickme-notification-service
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  pickme-settlement:
+    build:
+      context: .
+      dockerfile: domain-modules/pickme-settlement/Dockerfile
+    container_name: pickme-settlement-service
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ─── 인프라 서비스 ───
+  config-server:
+    build:
+      context: .
+      dockerfile: application/pickme-config-server/Dockerfile
+    container_name: pickme-config-server
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  discovery:
+    build:
+      context: .
+      dockerfile: application/pickme-discovery/Dockerfile
+    container_name: pickme-discovery
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ─── API Gateway ───
   api-gateway:
     build:
@@ -152,6 +252,10 @@ services:
       ORDER_SERVICE_URL: http://pickme-order:8081
       PAYMENT_SERVICE_URL: http://pickme-payment:8082
       INVENTORY_SERVICE_URL: http://pickme-inventory:8083
+      PRODUCT_SERVICE_URL: http://pickme-product:8084
+      MEMBER_SERVICE_URL: http://pickme-member:8085
+      PARTNER_SERVICE_URL: http://pickme-partner:8086
+      SETTLEMENT_SERVICE_URL: http://pickme-settlement:8088
     depends_on:
       - pickme-order
       - pickme-payment

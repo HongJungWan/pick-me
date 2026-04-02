@@ -1,0 +1,16 @@
+# Settlement 서비스 독립 실행 시 설정 (MSA 전환 후)
+# Kafka, Redis → Config Server로 이관 완료
+
+spring:
+  application:
+    name: pickme-settlement-service
+  datasource:
+    url: ${SETTLEMENT_DB_URL:jdbc:postgresql://postgres-settlement:5432/settlement_db}
+    username: ${SETTLEMENT_DB_USER:pickme}
+    password: ${SETTLEMENT_DB_PASS:pickme1234}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: 8088
