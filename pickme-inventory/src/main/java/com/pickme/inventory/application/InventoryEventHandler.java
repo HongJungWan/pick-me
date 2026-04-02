@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.common.event.DomainEvent;
 import com.pickme.common.idempotency.IdempotencyFilter;
+import com.pickme.common.lock.DistributedLock;
 import com.pickme.common.outbox.OutboxEvent;
 import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.inventory.domain.model.Stock;
@@ -47,6 +48,7 @@ public class InventoryEventHandler {
         log.info("Stock 생성 완료: productId={}, stockId={}", productId, stock.getStockId());
     }
 
+    @DistributedLock(key = "'lock:inventory:stock:' + #productId")
     @Transactional
     public void handleOrderPlaced(UUID eventId, UUID orderId, UUID productId, int quantity) {
         if (idempotencyFilter.isDuplicate(eventId)) return;
