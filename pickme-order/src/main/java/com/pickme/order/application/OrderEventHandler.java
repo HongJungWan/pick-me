@@ -36,8 +36,7 @@ public class OrderEventHandler {
         Order order = orderRepository.findById(OrderId.of(orderId))
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다: " + orderId));
 
-        order.markPaymentPending();
-        order.confirm();
+        order.completePayment();
         orderRepository.save(order);
         publishDomainEvents(order);
 

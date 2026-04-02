@@ -67,6 +67,15 @@ public class Order {
         return new Order(orderId, ordererId, orderLines, status, shippingInfo, totalAmount, orderedAt);
     }
 
+    public void completePayment() {
+        changeStatus(OrderStatus.PAYMENT_PENDING);
+        changeStatus(OrderStatus.PAID);
+        List<OrderConfirmedEvent.OrderLinePayload> linePayloads = orderLines.stream()
+                .map(l -> new OrderConfirmedEvent.OrderLinePayload(l.getProductId(), l.getQuantity()))
+                .toList();
+        domainEvents.add(new OrderConfirmedEvent(orderId.getValue(), linePayloads));
+    }
+
     public void confirm() {
         changeStatus(OrderStatus.PAID);
         List<OrderConfirmedEvent.OrderLinePayload> linePayloads = orderLines.stream()
