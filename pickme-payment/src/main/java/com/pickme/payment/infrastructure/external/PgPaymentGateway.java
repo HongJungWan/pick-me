@@ -1,12 +1,6 @@
 package com.pickme.payment.infrastructure.external;
 
-import com.pickme.payment.domain.model.PgResponse;
+import com.pickme.payment.domain.service.PaymentProcessingService;
 
-import java.util.UUID;
-
-public interface PgPaymentGateway {
-
-    PgResponse requestPayment(UUID paymentId, long amount, String method);
-
-    PgResponse requestRefund(String pgTransactionId, long amount);
+public interface PgPaymentGateway extends PaymentProcessingService.PgGateway {
 }

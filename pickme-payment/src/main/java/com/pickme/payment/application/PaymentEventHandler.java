@@ -5,8 +5,9 @@ import com.pickme.common.idempotency.IdempotencyFilter;
 import com.pickme.common.metrics.BusinessMetrics;
 import com.pickme.payment.domain.model.Payment;
 import com.pickme.payment.domain.model.PaymentMethod;
-import com.pickme.payment.domain.model.PgResponse;
+import com.pickme.payment.domain.model.PaymentStatus;
 import com.pickme.payment.domain.repository.PaymentRepository;
+import com.pickme.payment.domain.service.PaymentProcessingService;
 import com.pickme.payment.infrastructure.external.PgPaymentGateway;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,20 +34,15 @@ public class PaymentEventHandler {
             return;
         }
 
-        Payment payment = Payment.request(orderId, ordererId, totalAmount, PaymentMethod.CREDIT_CARD);
-        payment.process();
+        PaymentProcessingService processingService = new PaymentProcessingService(pgPaymentGateway);
+        Payment payment = processingService.processNewPayment(orderId, ordererId, totalAmount, PaymentMethod.CREDIT_CARD);
 
-        PgResponse pgResponse = pgPaymentGateway.requestPayment(
-                payment.getPaymentId().getValue(), totalAmount, PaymentMethod.CREDIT_CARD.name());
-
-        if (pgResponse.isSuccess()) {
-            payment.complete(pgResponse);
+        if (payment.getStatus() == PaymentStatus.COMPLETED) {
             businessMetrics.incrementPaymentSuccess();
-            log.info("결제 성공: orderId={}, pgTxnId={}", orderId, pgResponse.getTransactionId());
+            log.info("결제 성공: orderId={}", orderId);
         } else {
-            payment.fail(pgResponse.getMessage());
             businessMetrics.incrementPaymentFailed();
-            log.warn("결제 실패: orderId={}, reason={}", orderId, pgResponse.getMessage());
+            log.warn("결제 실패: orderId={}", orderId);
         }
 
         paymentRepository.save(payment);
@@ -61,19 +57,12 @@ public class PaymentEventHandler {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("결제를 찾을 수 없습니다: orderId=" + orderId));
 
-        payment.requestRefund();
-
-        PgResponse pgResponse = pgPaymentGateway.requestRefund(payment.getPgTransactionId(), refundAmount);
-
-        if (pgResponse.isSuccess()) {
-            payment.refund();
-            log.info("환불 성공: orderId={}", orderId);
-        } else {
-            log.warn("환불 실패: orderId={}, reason={}", orderId, pgResponse.getMessage());
-        }
+        PaymentProcessingService processingService = new PaymentProcessingService(pgPaymentGateway);
+        processingService.processRefund(payment, refundAmount);
 
         paymentRepository.save(payment);
         eventPublisher.publishAll(payment);
         idempotencyFilter.markProcessed(eventId, "OrderRefundRequestedEvent");
+        log.info("환불 처리 완료: orderId={}", orderId);
     }
 }
