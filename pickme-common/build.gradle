@@ -6,4 +6,6 @@ dependencies {
     implementation libs.redisson.spring.boot.starter
     implementation libs.jackson.datatype.jsr310
     implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.micrometer.registry.prometheus
 }
