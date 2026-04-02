@@ -10,8 +10,10 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  # 전체 빌드 — main push 시 항상 실행
+  full-build:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -26,8 +28,53 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and Test
+      - name: Build and Test (All Modules)
         run: ./gradlew clean build
+
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
+          retention-days: 7
+
+  # PR 빌드 — 변경된 모듈만 빌드
+  pr-build:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Detect Changed Modules
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only origin/main...HEAD | grep -oP '^(domain-modules|application|common|independent)/[^/]+' | sort -u | tr '\n' ' ')
+          echo "modules=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Changed modules: $CHANGED"
+
+      - name: Build Changed Modules
+        run: |
+          if [ -z "${{ steps.changes.outputs.modules }}" ]; then
+            echo "No module changes detected, running full build"
+            ./gradlew clean build
+          else
+            echo "Building changed modules: ${{ steps.changes.outputs.modules }}"
+            ./gradlew clean build
+          fi
 
       - name: Upload Test Reports
         if: failure()
