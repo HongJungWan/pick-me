@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pickme-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: pickme_db
+      POSTGRES_USER: pickme
+      POSTGRES_PASSWORD: pickme1234
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pickme -d pickme_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: pickme-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass pickme1234 --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "pickme1234", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: pickme-kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: pickme-kafka-cluster-001
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: pickme-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      echo 'Creating Kafka topics...'
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.order.events --partitions 6 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.payment.events --partitions 6 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.product.events --partitions 3 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.inventory.events --partitions 6 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.member.events --partitions 3 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.partner.events --partitions 1 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.notification.events --partitions 3 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.settlement.events --partitions 1 --replication-factor 1
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.dead-letter --partitions 3 --replication-factor 1
+      echo 'All topics created.'
+      "
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: pickme-kafka-ui
+    ports:
+      - "8089:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: pickme-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: pickme-zipkin
+    ports:
+      - "9411:9411"
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
