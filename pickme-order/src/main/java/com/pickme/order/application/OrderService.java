@@ -1,11 +1,7 @@
 package com.pickme.order.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
-import com.pickme.common.outbox.OutboxEvent;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.metrics.BusinessMetrics;
-import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.order.api.request.CreateOrderRequest;
 import com.pickme.order.domain.model.Address;
 import com.pickme.order.domain.model.Money;
@@ -26,8 +22,7 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
     private final BusinessMetrics businessMetrics;
 
     @Transactional
@@ -44,7 +39,7 @@ public class OrderService {
 
         Order order = Order.place(request.ordererId(), orderLines, shippingInfo);
         Order saved = orderRepository.save(order);
-        publishDomainEvents(order);
+        eventPublisher.publishAll(order);
         businessMetrics.incrementOrderCreated();
         return saved;
     }
@@ -65,20 +60,8 @@ public class OrderService {
         Order order = getOrder(orderId);
         order.cancel(reason);
         Order saved = orderRepository.save(order);
-        publishDomainEvents(order);
+        eventPublisher.publishAll(order);
         businessMetrics.incrementOrderCancelled();
         return saved;
-    }
-
-    private void publishDomainEvents(Order order) {
-        for (DomainEvent event : order.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        order.clearDomainEvents();
     }
 }

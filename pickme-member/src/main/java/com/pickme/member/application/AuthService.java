@@ -1,10 +1,6 @@
 package com.pickme.member.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
-import com.pickme.common.outbox.OutboxEvent;
-import com.pickme.common.outbox.OutboxRepository;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.member.api.request.LoginRequest;
 import com.pickme.member.api.request.SignupRequest;
 import com.pickme.member.api.response.TokenResponse;
@@ -25,8 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final MemberRepository memberRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
@@ -47,7 +42,7 @@ public class AuthService {
         );
 
         Member saved = memberRepository.save(member);
-        publishDomainEvents(member);
+        eventPublisher.publishAll(member);
         return saved;
     }
 
@@ -65,17 +60,5 @@ public class AuthService {
         String refreshToken = jwtProvider.createRefreshToken(member.getMemberId().getValue(), email.getValue());
 
         return new TokenResponse(accessToken, refreshToken);
-    }
-
-    private void publishDomainEvents(Member member) {
-        for (DomainEvent event : member.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        member.clearDomainEvents();
     }
 }

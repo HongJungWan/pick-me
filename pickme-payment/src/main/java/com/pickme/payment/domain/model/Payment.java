@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Payment {
+public class Payment implements com.pickme.common.event.DomainEventProvider {
 
     private final PaymentId paymentId;
     private final UUID orderId;

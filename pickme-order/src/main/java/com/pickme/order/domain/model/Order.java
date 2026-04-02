@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Order {
+public class Order implements com.pickme.common.event.DomainEventProvider {
 
     private final OrderId orderId;
     private final UUID ordererId;

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Member {
+public class Member implements com.pickme.common.event.DomainEventProvider {
 
     private final MemberId memberId;
     private final Email email;

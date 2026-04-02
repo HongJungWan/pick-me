@@ -1,12 +1,8 @@
 package com.pickme.payment.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.idempotency.IdempotencyFilter;
 import com.pickme.common.metrics.BusinessMetrics;
-import com.pickme.common.outbox.OutboxEvent;
-import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.payment.domain.model.Payment;
 import com.pickme.payment.domain.model.PaymentMethod;
 import com.pickme.payment.domain.model.PgResponse;
@@ -26,8 +22,7 @@ public class PaymentEventHandler {
 
     private final PaymentRepository paymentRepository;
     private final PgPaymentGateway pgPaymentGateway;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
     private final IdempotencyFilter idempotencyFilter;
     private final BusinessMetrics businessMetrics;
 
@@ -55,7 +50,7 @@ public class PaymentEventHandler {
         }
 
         paymentRepository.save(payment);
-        publishDomainEvents(payment);
+        eventPublisher.publishAll(payment);
         idempotencyFilter.markProcessed(eventId, "OrderPlacedEvent");
     }
 
@@ -78,19 +73,7 @@ public class PaymentEventHandler {
         }
 
         paymentRepository.save(payment);
-        publishDomainEvents(payment);
+        eventPublisher.publishAll(payment);
         idempotencyFilter.markProcessed(eventId, "OrderRefundRequestedEvent");
-    }
-
-    private void publishDomainEvents(Payment payment) {
-        for (DomainEvent event : payment.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        payment.clearDomainEvents();
     }
 }

@@ -1,12 +1,8 @@
 package com.pickme.inventory.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.idempotency.IdempotencyFilter;
 import com.pickme.common.lock.DistributedLock;
-import com.pickme.common.outbox.OutboxEvent;
-import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.inventory.domain.model.Stock;
 import com.pickme.inventory.domain.repository.StockRepository;
 import com.pickme.inventory.infrastructure.config.StockRedisService;
@@ -26,8 +22,7 @@ public class InventoryEventHandler {
     private static final int DEFAULT_INITIAL_STOCK = 0;
 
     private final StockRepository stockRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
     private final IdempotencyFilter idempotencyFilter;
     @Nullable
     private final StockRedisService stockRedisService;
@@ -63,7 +58,7 @@ public class InventoryEventHandler {
         stock.reserve(quantity, orderId);
         stockRepository.save(stock);
         if (stockRedisService != null) stockRedisService.syncFromDb(productId, stock.getQuantity().getValue());
-        publishDomainEvents(stock);
+        eventPublisher.publishAll(stock);
 
         idempotencyFilter.markProcessed(eventId, "OrderPlacedEvent");
         log.info("재고 예약 처리: productId={}, orderId={}, qty={}", productId, orderId, quantity);
@@ -93,21 +88,9 @@ public class InventoryEventHandler {
         stock.cancel(quantity, orderId);
         stockRepository.save(stock);
         if (stockRedisService != null) stockRedisService.syncFromDb(productId, stock.getQuantity().getValue());
-        publishDomainEvents(stock);
+        eventPublisher.publishAll(stock);
 
         idempotencyFilter.markProcessed(eventId, "OrderCancelledEvent");
         log.info("재고 복원 (보상): productId={}, orderId={}, qty={}", productId, orderId, quantity);
-    }
-
-    private void publishDomainEvents(Stock stock) {
-        for (DomainEvent event : stock.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        stock.clearDomainEvents();
     }
 }

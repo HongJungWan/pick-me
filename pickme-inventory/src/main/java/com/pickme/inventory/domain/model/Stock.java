@@ -11,7 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Stock {
+public class Stock implements com.pickme.common.event.DomainEventProvider {
 
     private final StockId stockId;
     private final UUID productId;

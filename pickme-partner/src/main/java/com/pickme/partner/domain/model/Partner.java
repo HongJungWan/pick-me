@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Partner {
+public class Partner implements com.pickme.common.event.DomainEventProvider {
     private final PartnerId partnerId;
     private final BusinessInfo businessInfo;
     private ContractInfo contractInfo;

@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class Product {
+public class Product implements com.pickme.common.event.DomainEventProvider {
 
     private final ProductId productId;
     private final UUID partnerId;

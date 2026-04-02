@@ -1,10 +1,6 @@
 package com.pickme.product.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
-import com.pickme.common.outbox.OutboxEvent;
-import com.pickme.common.outbox.OutboxRepository;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.product.api.request.CreateProductRequest;
 import com.pickme.product.api.request.UpdateProductRequest;
 import com.pickme.product.domain.model.Category;
@@ -30,8 +26,7 @@ import java.util.UUID;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
 
     @Transactional
     public Product createProduct(CreateProductRequest request) {
@@ -51,7 +46,7 @@ public class ProductService {
         );
 
         Product saved = productRepository.save(product);
-        publishDomainEvents(product);
+        eventPublisher.publishAll(product);
         return saved;
     }
 
@@ -87,19 +82,7 @@ public class ProductService {
         }
 
         Product saved = productRepository.save(product);
-        publishDomainEvents(product);
+        eventPublisher.publishAll(product);
         return saved;
-    }
-
-    private void publishDomainEvents(Product product) {
-        for (DomainEvent event : product.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        product.clearDomainEvents();
     }
 }

@@ -1,11 +1,7 @@
 package com.pickme.order.application;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pickme.common.event.DomainEvent;
+import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.idempotency.IdempotencyFilter;
-import com.pickme.common.outbox.OutboxEvent;
-import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.order.domain.model.Order;
 import com.pickme.order.domain.model.OrderId;
 import com.pickme.order.domain.repository.OrderRepository;
@@ -22,8 +18,7 @@ import java.util.UUID;
 public class OrderEventHandler {
 
     private final OrderRepository orderRepository;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+    private final DomainEventPublisher eventPublisher;
     private final IdempotencyFilter idempotencyFilter;
 
     @Transactional
@@ -38,7 +33,7 @@ public class OrderEventHandler {
 
         order.completePayment();
         orderRepository.save(order);
-        publishDomainEvents(order);
+        eventPublisher.publishAll(order);
 
         idempotencyFilter.markProcessed(eventId, "PaymentCompletedEvent");
         log.info("주문 확정: orderId={}", orderId);
@@ -53,7 +48,7 @@ public class OrderEventHandler {
 
         order.cancel("결제 실패: " + reason);
         orderRepository.save(order);
-        publishDomainEvents(order);
+        eventPublisher.publishAll(order);
 
         idempotencyFilter.markProcessed(eventId, "PaymentFailedEvent");
         log.info("주문 취소 (결제 실패): orderId={}", orderId);
@@ -68,21 +63,9 @@ public class OrderEventHandler {
 
         order.cancel("재고 부족");
         orderRepository.save(order);
-        publishDomainEvents(order);
+        eventPublisher.publishAll(order);
 
         idempotencyFilter.markProcessed(eventId, "InventoryShortageEvent");
         log.info("주문 취소 (재고 부족): orderId={}", orderId);
-    }
-
-    private void publishDomainEvents(Order order) {
-        for (DomainEvent event : order.getDomainEvents()) {
-            try {
-                String payload = objectMapper.writeValueAsString(event);
-                outboxRepository.save(OutboxEvent.from(event, payload));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("이벤트 직렬화 실패", e);
-            }
-        }
-        order.clearDomainEvents();
     }
 }
