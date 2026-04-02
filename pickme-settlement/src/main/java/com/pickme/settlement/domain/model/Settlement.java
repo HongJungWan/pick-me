@@ -1,10 +1,16 @@
 package com.pickme.settlement.domain.model;
 
+import com.pickme.common.event.DomainEvent;
+import com.pickme.common.event.DomainEventProvider;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
-public class Settlement {
+public class Settlement implements DomainEventProvider {
 
     private final SettlementId settlementId;
     private final UUID partnerId;
@@ -16,6 +22,7 @@ public class Settlement {
     private long netSettlementAmount;
     private int totalOrders;
     private SettlementStatus status;
+    private final List<DomainEvent> domainEvents;
 
     private Settlement(SettlementId settlementId, UUID partnerId, SettlementPeriod period,
                        long totalSalesAmount, long totalRefundAmount, BigDecimal commissionRate,
@@ -28,6 +35,7 @@ public class Settlement {
         this.commissionRate = commissionRate;
         this.totalOrders = totalOrders;
         this.status = status;
+        this.domainEvents = new ArrayList<>();
         recalculate();
     }
 
@@ -73,6 +81,12 @@ public class Settlement {
         changeStatus(SettlementStatus.COMPLETED);
     }
 
+    public boolean isReconciled() {
+        long expectedNet = this.totalSalesAmount - this.totalRefundAmount;
+        long actualNet = this.netSettlementAmount + this.commissionAmount;
+        return expectedNet == actualNet;
+    }
+
     private void changeStatus(SettlementStatus newStatus) {
         if (!this.status.canTransitionTo(newStatus)) {
             throw new IllegalStateException(
@@ -100,4 +114,10 @@ public class Settlement {
     public long getNetSettlementAmount() { return netSettlementAmount; }
     public int getTotalOrders() { return totalOrders; }
     public SettlementStatus getStatus() { return status; }
+
+    @Override
+    public List<DomainEvent> getDomainEvents() { return Collections.unmodifiableList(domainEvents); }
+
+    @Override
+    public void clearDomainEvents() { domainEvents.clear(); }
 }
