@@ -4,4 +4,5 @@ dependencies {
     implementation libs.spring.kafka
     implementation libs.redisson.spring.boot.starter
     implementation libs.jackson.datatype.jsr310
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
 }
