@@ -51,7 +51,7 @@ public class OrderSnapshotConsumer {
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Product 이벤트 처리 실패: {}", message, e);
-            ack.acknowledge();
+            throw new RuntimeException(e);
         }
     }
 
@@ -79,7 +79,7 @@ public class OrderSnapshotConsumer {
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Member 이벤트 처리 실패: {}", message, e);
-            ack.acknowledge();
+            throw new RuntimeException(e);
         }
     }
 }

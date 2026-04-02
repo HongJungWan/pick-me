@@ -45,7 +45,7 @@ public class SettlementEventConsumer {
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Settlement 이벤트 처리 실패: {}", message, e);
-            ack.acknowledge();
+            throw new RuntimeException(e);
         }
     }
 
@@ -68,7 +68,7 @@ public class SettlementEventConsumer {
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Partner 이벤트 처리 실패: {}", message, e);
-            ack.acknowledge();
+            throw new RuntimeException(e);
         }
     }
 }

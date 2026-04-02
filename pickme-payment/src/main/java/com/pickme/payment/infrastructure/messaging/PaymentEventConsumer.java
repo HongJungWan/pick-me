@@ -46,7 +46,7 @@ public class PaymentEventConsumer {
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Order 이벤트 처리 실패: {}", message, e);
-            ack.acknowledge();
+            throw new RuntimeException(e);
         }
     }
 }
