@@ -83,6 +83,20 @@
 
 ## 모듈 구조
 
+[우아한형제들 멀티모듈 설계](https://techblog.woowahan.com/2637/)를 참고하여 역할과 책임에 따라 4개 계층으로 분류합니다.
+
+```
+pick-me/
+├── application/          ← 어플리케이션 모듈 (실행/배포 단위)
+├── domain-modules/       ← 도메인 모듈 (순수 도메인 비즈니스)
+├── independent/          ← 독립 모듈 (도메인을 모르는 기능 모듈)
+└── common/               ← 공통 모듈 (프로젝트 전체 공유)
+```
+
+### 도메인 모듈 (`domain-modules/`)
+
+도메인 비즈니스에 집중하며, 공통 모듈만 의존합니다.
+
 | 모듈 | 역할 | Bounded Context | README |
 |------|------|-----------------|--------|
 | **pickme-order** | 주문 생성, 상태 관리, Saga 이벤트 | Order | [README](domain-modules/pickme-order/README.md) |
@@ -93,10 +107,31 @@
 | **pickme-partner** | 파트너 등록/승인, ACL Gateway | Partner | [README](domain-modules/pickme-partner/README.md) |
 | **pickme-notification** | 알림 발송 (이메일/SMS/카카오) | Notification | [README](domain-modules/pickme-notification/README.md) |
 | **pickme-settlement** | 정산 집계, ETL, Reconciliation | Settlement | [README](domain-modules/pickme-settlement/README.md) |
-| **pickme-common** | Outbox, 멱등성, 분산 락, 이벤트 공통 | (공통 인프라) | [README](common/pickme-common/README.md) |
-| **pickme-app** | Spring Boot 실행, Flyway, 프로필 | (실행 모듈) | [README](application/pickme-app/README.md) |
-| **pickme-archunit** | 모듈 경계, 도메인 순수성 테스트 | (아키텍처 테스트) | [README](independent/pickme-archunit/README.md) |
-| **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | (API Gateway) | [README](application/pickme-gateway/README.md) |
+
+### 어플리케이션 모듈 (`application/`)
+
+실행 가능한 어플리케이션으로, 도메인/공통/독립 모듈을 조합하여 독립 배포 단위를 구성합니다.
+
+| 모듈 | 역할 | README |
+|------|------|--------|
+| **pickme-app** | Spring Boot 실행, Flyway, 프로필 | [README](application/pickme-app/README.md) |
+| **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | [README](application/pickme-gateway/README.md) |
+
+### 공통 모듈 (`common/`)
+
+프로젝트 전체에서 사용하는 공유 인프라입니다. 어떤 모듈에도 의존하지 않습니다.
+
+| 모듈 | 역할 | README |
+|------|------|--------|
+| **pickme-common** | Outbox, 멱등성, 분산 락, Rate Limiter, 이벤트 공통 | [README](common/pickme-common/README.md) |
+
+### 독립 모듈 (`independent/`)
+
+시스템과 연관 있지만 도메인/어플리케이션을 모르는 기능 모듈입니다.
+
+| 모듈 | 역할 | README |
+|------|------|--------|
+| **pickme-archunit** | 모듈 경계, 도메인 순수성, 네이밍 규칙 테스트 | [README](independent/pickme-archunit/README.md) |
 
 ---
 
