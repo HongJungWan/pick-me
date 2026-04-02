@@ -79,6 +79,8 @@ public class Settlement implements DomainEventProvider {
 
     public void complete() {
         changeStatus(SettlementStatus.COMPLETED);
+        domainEvents.add(new com.pickme.settlement.domain.event.SettlementCompletedEvent(
+                settlementId.getValue(), partnerId, netSettlementAmount));
     }
 
     public boolean isReconciled() {
