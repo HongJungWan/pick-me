@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -20,6 +21,8 @@ public class DeadLetterConsumer {
 
     private final DeadLetterEventRepository repository;
     private final ObjectMapper objectMapper;
+    @Nullable
+    private final SlackNotifier slackNotifier;
 
     @KafkaListener(topics = "pickme.dead-letter", groupId = "dlt-monitor")
     public void consume(String message, Acknowledgment ack) {
@@ -32,6 +35,10 @@ public class DeadLetterConsumer {
                     eventId, eventType, "unknown", message, "DLT에 적재됨"
             );
             repository.save(dlt);
+
+            if (slackNotifier != null) {
+                slackNotifier.notifyDeadLetterEvent(dlt);
+            }
 
             log.warn("DLT 이벤트 저장: eventId={}, type={}", eventId, eventType);
             ack.acknowledge();
