@@ -45,3 +45,38 @@ pickme:
   lock:
     default-wait-time: 3
     default-lease-time: 5
+  datasource:
+    pool:
+      modules:
+        order:
+          max-pool-size: 10
+          min-idle: 3
+          connection-timeout: 3000
+        payment:
+          max-pool-size: 10
+          min-idle: 3
+          connection-timeout: 3000
+        inventory:
+          max-pool-size: 10
+          min-idle: 3
+          connection-timeout: 3000
+        product:
+          max-pool-size: 5
+          min-idle: 2
+          connection-timeout: 3000
+        member:
+          max-pool-size: 5
+          min-idle: 2
+          connection-timeout: 3000
+        partner:
+          max-pool-size: 5
+          min-idle: 2
+          connection-timeout: 3000
+        notification:
+          max-pool-size: 5
+          min-idle: 2
+          connection-timeout: 3000
+        settlement:
+          max-pool-size: 5
+          min-idle: 2
+          connection-timeout: 3000
