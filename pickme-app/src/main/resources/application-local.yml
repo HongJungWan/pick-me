@@ -3,7 +3,7 @@ spring:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   datasource:
-    url: jdbc:h2:mem:pickme_db;MODE=PostgreSQL
+    url: jdbc:h2:mem:pickme_db;MODE=PostgreSQL;INIT=CREATE SCHEMA IF NOT EXISTS order_schema\;CREATE SCHEMA IF NOT EXISTS payment_schema\;CREATE SCHEMA IF NOT EXISTS product_schema\;CREATE SCHEMA IF NOT EXISTS inventory_schema\;CREATE SCHEMA IF NOT EXISTS member_schema\;CREATE SCHEMA IF NOT EXISTS partner_schema\;CREATE SCHEMA IF NOT EXISTS notification_schema\;CREATE SCHEMA IF NOT EXISTS settlement_schema
     username: sa
     password:
     driver-class-name: org.h2.Driver

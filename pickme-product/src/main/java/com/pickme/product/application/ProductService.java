@@ -16,6 +16,8 @@ import com.pickme.product.domain.model.ProductPrice;
 import com.pickme.product.domain.model.ProductStatus;
 import com.pickme.product.domain.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,7 @@ public class ProductService {
         return saved;
     }
 
+    @Cacheable(value = "product", key = "#productId", unless = "#result == null")
     @Transactional(readOnly = true)
     public Product getProduct(UUID productId) {
         return productRepository.findById(ProductId.of(productId))
@@ -64,6 +67,7 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    @CacheEvict(value = "product", key = "#productId")
     @Transactional
     public Product updateProduct(UUID productId, UpdateProductRequest request) {
         Product product = productRepository.findById(ProductId.of(productId))
