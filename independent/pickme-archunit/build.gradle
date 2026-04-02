@@ -1,0 +1,14 @@
+dependencies {
+    testImplementation project(':common:pickme-common')
+    testImplementation project(':domain-modules:pickme-order')
+    testImplementation project(':domain-modules:pickme-payment')
+    testImplementation project(':domain-modules:pickme-product')
+    testImplementation project(':domain-modules:pickme-inventory')
+    testImplementation project(':domain-modules:pickme-member')
+    testImplementation project(':domain-modules:pickme-partner')
+    testImplementation project(':domain-modules:pickme-notification')
+    testImplementation project(':domain-modules:pickme-settlement')
+
+    testImplementation libs.archunit.junit5
+    testImplementation libs.spring.boot.starter.web
+}

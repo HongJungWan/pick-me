@@ -1,14 +1,21 @@
 rootProject.name = 'pick-me'
 
-include 'pickme-common'
-include 'pickme-order'
-include 'pickme-payment'
-include 'pickme-product'
-include 'pickme-inventory'
-include 'pickme-member'
-include 'pickme-partner'
-include 'pickme-notification'
-include 'pickme-settlement'
-include 'pickme-app'
-include 'pickme-archunit'
-include 'pickme-gateway'
+// 공통 모듈
+include 'common:pickme-common'
+
+// 도메인 모듈
+include 'domain-modules:pickme-order'
+include 'domain-modules:pickme-payment'
+include 'domain-modules:pickme-product'
+include 'domain-modules:pickme-inventory'
+include 'domain-modules:pickme-member'
+include 'domain-modules:pickme-partner'
+include 'domain-modules:pickme-notification'
+include 'domain-modules:pickme-settlement'
+
+// 독립 모듈
+include 'independent:pickme-archunit'
+
+// 어플리케이션 모듈
+include 'application:pickme-app'
+include 'application:pickme-gateway'

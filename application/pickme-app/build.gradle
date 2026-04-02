@@ -3,15 +3,15 @@ plugins {
 }
 
 dependencies {
-    implementation project(':pickme-common')
-    implementation project(':pickme-order')
-    implementation project(':pickme-payment')
-    implementation project(':pickme-product')
-    implementation project(':pickme-inventory')
-    implementation project(':pickme-member')
-    implementation project(':pickme-partner')
-    implementation project(':pickme-notification')
-    implementation project(':pickme-settlement')
+    implementation project(':common:pickme-common')
+    implementation project(':domain-modules:pickme-order')
+    implementation project(':domain-modules:pickme-payment')
+    implementation project(':domain-modules:pickme-product')
+    implementation project(':domain-modules:pickme-inventory')
+    implementation project(':domain-modules:pickme-member')
+    implementation project(':domain-modules:pickme-partner')
+    implementation project(':domain-modules:pickme-notification')
+    implementation project(':domain-modules:pickme-settlement')
 
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.data.jpa

@@ -85,18 +85,18 @@
 
 | 모듈 | 역할 | Bounded Context | README |
 |------|------|-----------------|--------|
-| **pickme-order** | 주문 생성, 상태 관리, Saga 이벤트 | Order | [README](pickme-order/README.md) |
-| **pickme-payment** | PG 결제, 환불, Domain Service | Payment | [README](pickme-payment/README.md) |
-| **pickme-product** | 상품 CRUD, Redis 캐시 | Product | [README](pickme-product/README.md) |
-| **pickme-inventory** | 재고 예약/확정/복원, 분산 락 | Inventory | [README](pickme-inventory/README.md) |
-| **pickme-member** | 회원 가입, JWT 인증, 등급 관리 | Member | [README](pickme-member/README.md) |
-| **pickme-partner** | 파트너 등록/승인, ACL Gateway | Partner | [README](pickme-partner/README.md) |
-| **pickme-notification** | 알림 발송 (이메일/SMS/카카오) | Notification | [README](pickme-notification/README.md) |
-| **pickme-settlement** | 정산 집계, ETL, Reconciliation | Settlement | [README](pickme-settlement/README.md) |
-| **pickme-common** | Outbox, 멱등성, 분산 락, 이벤트 공통 | (공통 인프라) | [README](pickme-common/README.md) |
-| **pickme-app** | Spring Boot 실행, Flyway, 프로필 | (실행 모듈) | [README](pickme-app/README.md) |
-| **pickme-archunit** | 모듈 경계, 도메인 순수성 테스트 | (아키텍처 테스트) | [README](pickme-archunit/README.md) |
-| **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | (API Gateway) | [README](pickme-gateway/README.md) |
+| **pickme-order** | 주문 생성, 상태 관리, Saga 이벤트 | Order | [README](domain-modules/pickme-order/README.md) |
+| **pickme-payment** | PG 결제, 환불, Domain Service | Payment | [README](domain-modules/pickme-payment/README.md) |
+| **pickme-product** | 상품 CRUD, Redis 캐시 | Product | [README](domain-modules/pickme-product/README.md) |
+| **pickme-inventory** | 재고 예약/확정/복원, 분산 락 | Inventory | [README](domain-modules/pickme-inventory/README.md) |
+| **pickme-member** | 회원 가입, JWT 인증, 등급 관리 | Member | [README](domain-modules/pickme-member/README.md) |
+| **pickme-partner** | 파트너 등록/승인, ACL Gateway | Partner | [README](domain-modules/pickme-partner/README.md) |
+| **pickme-notification** | 알림 발송 (이메일/SMS/카카오) | Notification | [README](domain-modules/pickme-notification/README.md) |
+| **pickme-settlement** | 정산 집계, ETL, Reconciliation | Settlement | [README](domain-modules/pickme-settlement/README.md) |
+| **pickme-common** | Outbox, 멱등성, 분산 락, 이벤트 공통 | (공통 인프라) | [README](common/pickme-common/README.md) |
+| **pickme-app** | Spring Boot 실행, Flyway, 프로필 | (실행 모듈) | [README](application/pickme-app/README.md) |
+| **pickme-archunit** | 모듈 경계, 도메인 순수성 테스트 | (아키텍처 테스트) | [README](independent/pickme-archunit/README.md) |
+| **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | (API Gateway) | [README](application/pickme-gateway/README.md) |
 
 ---
 

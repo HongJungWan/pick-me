@@ -1,11 +1,8 @@
 dependencies {
-    implementation project(':pickme-common')
+    implementation project(':common:pickme-common')
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.data.jpa
-    implementation libs.spring.boot.starter.security
+    implementation libs.spring.boot.starter.data.redis
     implementation libs.spring.boot.starter.validation
     implementation libs.spring.kafka
-    implementation libs.jjwt.api
-    runtimeOnly libs.jjwt.impl
-    runtimeOnly libs.jjwt.jackson
 }
