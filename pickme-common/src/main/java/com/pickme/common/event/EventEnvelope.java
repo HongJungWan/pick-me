@@ -10,6 +10,7 @@ public record EventEnvelope(
         String aggregateId,
         Instant occurredAt,
         int version,
+        String traceId,
         String payload
 ) {
 
@@ -21,6 +22,20 @@ public record EventEnvelope(
                 event.getAggregateId(),
                 event.getOccurredAt(),
                 1,
+                null,
+                serializedPayload
+        );
+    }
+
+    public static EventEnvelope of(DomainEvent event, String serializedPayload, String traceId) {
+        return new EventEnvelope(
+                event.getEventId(),
+                event.getEventType(),
+                event.getAggregateType(),
+                event.getAggregateId(),
+                event.getOccurredAt(),
+                1,
+                traceId,
                 serializedPayload
         );
     }

@@ -16,6 +16,8 @@ dependencies {
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.actuator
     implementation libs.micrometer.registry.prometheus
+    implementation libs.micrometer.tracing.bridge.brave
+    implementation libs.zipkin.reporter.brave
 
     runtimeOnly libs.postgresql
     runtimeOnly libs.flyway.core
