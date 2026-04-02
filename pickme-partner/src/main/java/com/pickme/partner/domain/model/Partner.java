@@ -37,6 +37,7 @@ public class Partner implements com.pickme.common.event.DomainEventProvider {
     public void suspend(String reason) {
         if (this.status != PartnerStatus.APPROVED) throw new IllegalStateException("승인 상태에서만 정지 가능합니다");
         this.status = PartnerStatus.SUSPENDED;
+        domainEvents.add(new com.pickme.partner.domain.event.PartnerSuspendedEvent(partnerId.getValue(), reason));
     }
 
     public PartnerId getPartnerId() { return partnerId; }
