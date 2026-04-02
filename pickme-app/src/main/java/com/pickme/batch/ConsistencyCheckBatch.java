@@ -1,0 +1,77 @@
+package com.pickme.batch;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class ConsistencyCheckBatch {
+
+    private static final Duration ZOMBIE_THRESHOLD = Duration.ofHours(2);
+
+    private final JdbcTemplate jdbcTemplate;
+
+    @Scheduled(cron = "0 0 3 * * *")
+    public void checkConsistency() {
+        log.info("=== 정합성 검증 배치 시작 ===");
+
+        checkZombieOrders();
+        checkOrderPaymentConsistency();
+
+        log.info("=== 정합성 검증 배치 완료 ===");
+    }
+
+    private void checkZombieOrders() {
+        Instant threshold = Instant.now().minus(ZOMBIE_THRESHOLD);
+
+        try {
+            List<Map<String, Object>> zombies = jdbcTemplate.queryForList(
+                    "SELECT id, orderer_id, order_status, ordered_at FROM order_schema.orders " +
+                    "WHERE order_status IN ('PLACED', 'PAYMENT_PENDING') AND ordered_at < ?",
+                    java.sql.Timestamp.from(threshold)
+            );
+
+            if (!zombies.isEmpty()) {
+                log.warn("좀비 주문 감지: {}건 (PLACED/PAYMENT_PENDING 상태 {}시간 이상 유지)",
+                        zombies.size(), ZOMBIE_THRESHOLD.toHours());
+                zombies.forEach(z -> log.warn("  - orderId={}, status={}, orderedAt={}",
+                        z.get("id"), z.get("order_status"), z.get("ordered_at")));
+            } else {
+                log.info("좀비 주문 없음");
+            }
+        } catch (Exception e) {
+            log.warn("좀비 주문 검증 스킵 (테이블 미존재 가능): {}", e.getMessage());
+        }
+    }
+
+    private void checkOrderPaymentConsistency() {
+        try {
+            List<Map<String, Object>> inconsistent = jdbcTemplate.queryForList(
+                    "SELECT o.id as order_id, o.order_status, p.status as payment_status " +
+                    "FROM order_schema.orders o " +
+                    "LEFT JOIN payment_schema.payments p ON o.id = p.order_id " +
+                    "WHERE (o.order_status = 'PAID' AND (p.status IS NULL OR p.status != 'COMPLETED')) " +
+                    "   OR (o.order_status = 'CANCELLED' AND p.status = 'COMPLETED')"
+            );
+
+            if (!inconsistent.isEmpty()) {
+                log.error("주문-결제 정합성 불일치: {}건", inconsistent.size());
+                inconsistent.forEach(r -> log.error("  - orderId={}, orderStatus={}, paymentStatus={}",
+                        r.get("order_id"), r.get("order_status"), r.get("payment_status")));
+            } else {
+                log.info("주문-결제 정합성 정상");
+            }
+        } catch (Exception e) {
+            log.warn("주문-결제 정합성 검증 스킵 (테이블 미존재 가능): {}", e.getMessage());
+        }
+    }
+}
