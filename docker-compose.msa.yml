@@ -1,0 +1,163 @@
+# MSA 전환 시 서비스별 독립 컨테이너 구성 예시
+# Phase 3에서 병목 모듈 분리 시 사용
+
+services:
+  # ─── 독립 DB ───
+  postgres-order:
+    image: postgres:16-alpine
+    container_name: pickme-postgres-order
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: pickme
+      POSTGRES_PASSWORD: pickme1234
+    volumes:
+      - postgres-order-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pickme -d order_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-payment:
+    image: postgres:16-alpine
+    container_name: pickme-postgres-payment
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: pickme
+      POSTGRES_PASSWORD: pickme1234
+    volumes:
+      - postgres-payment-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pickme -d payment_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-inventory:
+    image: postgres:16-alpine
+    container_name: pickme-postgres-inventory
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: pickme
+      POSTGRES_PASSWORD: pickme1234
+    volumes:
+      - postgres-inventory-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pickme -d inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── 공유 인프라 ───
+  redis:
+    image: redis:7-alpine
+    container_name: pickme-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass pickme1234
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: pickme-kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      CLUSTER_ID: pickme-kafka-cluster-001
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ─── 독립 서비스 ───
+  pickme-order:
+    build:
+      context: .
+      dockerfile: pickme-order/Dockerfile
+    container_name: pickme-order-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      ORDER_DB_URL: jdbc:postgresql://postgres-order:5432/order_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+    depends_on:
+      postgres-order:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  pickme-payment:
+    build:
+      context: .
+      dockerfile: pickme-payment/Dockerfile
+    container_name: pickme-payment-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      PAYMENT_DB_URL: jdbc:postgresql://postgres-payment:5432/payment_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+    depends_on:
+      postgres-payment:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  pickme-inventory:
+    build:
+      context: .
+      dockerfile: pickme-inventory/Dockerfile
+    container_name: pickme-inventory-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: msa
+      INVENTORY_DB_URL: jdbc:postgresql://postgres-inventory:5432/inventory_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+    depends_on:
+      postgres-inventory:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ─── API Gateway ───
+  api-gateway:
+    build:
+      context: .
+      dockerfile: pickme-gateway/Dockerfile
+    container_name: pickme-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      ORDER_SERVICE_URL: http://pickme-order:8081
+      PAYMENT_SERVICE_URL: http://pickme-payment:8082
+      INVENTORY_SERVICE_URL: http://pickme-inventory:8083
+    depends_on:
+      - pickme-order
+      - pickme-payment
+      - pickme-inventory
+
+volumes:
+  postgres-order-data:
+  postgres-payment-data:
+  postgres-inventory-data:
