@@ -52,6 +52,13 @@ management:
     tracing:
       endpoint: http://zipkin:9411/api/v2/spans
 
+pickme:
+  datasource:
+    routing:
+      enabled: false
+    replica:
+      url: jdbc:postgresql://postgres:5432/pickme_db
+
 logging:
   level:
     com.pickme: INFO
