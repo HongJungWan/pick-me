@@ -47,6 +47,18 @@ public class OrderSnapshotEventHandler {
     }
 
     @Transactional
+    public void handleProductPriceChanged(UUID eventId, UUID productId, long newPrice) {
+        if (idempotencyFilter.isDuplicate(eventId)) return;
+
+        productSnapshotRepository.findById(productId).ifPresent(
+                snapshot -> snapshot.update(snapshot.getProductName(), newPrice)
+        );
+
+        idempotencyFilter.markProcessed(eventId, "ProductPriceChangedEvent");
+        log.info("Product 스냅샷 가격 갱신: productId={}, newPrice={}", productId, newPrice);
+    }
+
+    @Transactional
     public void handleMemberRegistered(UUID eventId, UUID memberId, String name) {
         if (idempotencyFilter.isDuplicate(eventId)) return;
 

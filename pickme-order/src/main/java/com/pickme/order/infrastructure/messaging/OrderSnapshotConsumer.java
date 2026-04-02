@@ -40,6 +40,11 @@ public class OrderSnapshotConsumer {
                         UUID.fromString(root.path("productId").asText()),
                         root.path("productName").asText()
                 );
+                case "ProductPriceChangedEvent" -> snapshotHandler.handleProductPriceChanged(
+                        eventId,
+                        UUID.fromString(root.path("productId").asText()),
+                        root.path("newPrice").asLong()
+                );
                 default -> log.debug("무시된 이벤트: {}", eventType);
             }
 
