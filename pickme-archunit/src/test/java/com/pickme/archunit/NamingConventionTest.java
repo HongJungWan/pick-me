@@ -18,11 +18,12 @@ class NamingConventionTest {
                     .should().haveSimpleNameEndingWith("Controller");
 
     @ArchTest
-    static final ArchRule Service는_Service_접미사를_가져야_한다 =
+    static final ArchRule Service는_Service_또는_EventHandler_접미사를_가져야_한다 =
             classes()
                     .that().resideInAPackage("..application..")
                     .and().areAnnotatedWith(org.springframework.stereotype.Service.class)
-                    .should().haveSimpleNameEndingWith("Service");
+                    .should().haveSimpleNameEndingWith("Service")
+                    .orShould().haveSimpleNameEndingWith("EventHandler");
 
     @ArchTest
     static final ArchRule EventHandler는_EventHandler_접미사를_가져야_한다 =
