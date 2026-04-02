@@ -10,4 +10,5 @@ dependencies {
     testImplementation project(':pickme-settlement')
 
     testImplementation libs.archunit.junit5
+    testImplementation libs.spring.boot.starter.web
 }
