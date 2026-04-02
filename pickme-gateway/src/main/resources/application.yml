@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: pickme-api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/orders/**
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/payments/**
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/inventory/**
+        - id: product-service
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/products/**
+        - id: member-service
+          uri: ${MEMBER_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/members/**,/api/v1/auth/**
+        - id: partner-service
+          uri: ${PARTNER_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/partners/**
+        - id: settlement-service
+          uri: ${SETTLEMENT_SERVICE_URL:http://localhost:8080}
+          predicates:
+            - Path=/api/v1/settlements/**
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+  endpoint:
+    gateway:
+      enabled: true
