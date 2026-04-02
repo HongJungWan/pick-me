@@ -1,0 +1,13 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: pickme-inventory
+  datasource:
+    url: ${INVENTORY_DB_URL:jdbc:postgresql://postgres:5432/pickme_db}
+    username: ${DB_USER:pickme}
+    password: ${DB_PASS:pickme1234}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5

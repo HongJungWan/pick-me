@@ -1,0 +1,13 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: pickme-product
+  datasource:
+    url: ${PRODUCT_DB_URL:jdbc:postgresql://postgres:5432/pickme_db}
+    username: ${DB_USER:pickme}
+    password: ${DB_PASS:pickme1234}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3

@@ -1,0 +1,16 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: pickme-member
+  datasource:
+    url: ${MEMBER_DB_URL:jdbc:postgresql://postgres:5432/pickme_db}
+    username: ${DB_USER:pickme}
+    password: ${DB_PASS:pickme1234}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+
+jwt:
+  secret: ${JWT_SECRET:pickme-default-jwt-secret-key-which-is-at-least-256-bits}

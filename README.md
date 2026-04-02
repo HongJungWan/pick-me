@@ -116,6 +116,7 @@ pick-me/
 |------|------|--------|
 | **pickme-app** | Spring Boot 실행, Flyway, 프로필 | [README](application/pickme-app/README.md) |
 | **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | [README](application/pickme-gateway/README.md) |
+| **pickme-config-server** | Spring Cloud Config Server, 설정 중앙 관리 | [README](application/pickme-config-server/README.md) |
 
 ### 공통 모듈 (`common/`)
 

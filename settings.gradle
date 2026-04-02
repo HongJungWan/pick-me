@@ -19,3 +19,4 @@ include 'independent:pickme-archunit'
 // 어플리케이션 모듈
 include 'application:pickme-app'
 include 'application:pickme-gateway'
+include 'application:pickme-config-server'
