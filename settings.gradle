@@ -1,0 +1,13 @@
+rootProject.name = 'pick-me'
+
+include 'pickme-common'
+include 'pickme-order'
+include 'pickme-payment'
+include 'pickme-product'
+include 'pickme-inventory'
+include 'pickme-member'
+include 'pickme-partner'
+include 'pickme-notification'
+include 'pickme-settlement'
+include 'pickme-app'
+include 'pickme-archunit'

@@ -1,0 +1,21 @@
+# type(scope): subject (#PM-번호)
+#
+# --- Type ---
+# feat:     새로운 기능
+# fix:      버그 수정
+# refactor: 리팩토링 (기능 변경 없음)
+# test:     테스트 추가/수정
+# chore:    빌드, 설정, 의존성
+# docs:     문서
+# style:    코드 포맷팅 (기능 변경 없음)
+# perf:     성능 개선
+# ci:       CI/CD 설정
+#
+# --- Scope ---
+# order, payment, product, inventory, member,
+# partner, notification, settlement, common, infra, gradle
+#
+# --- Rules ---
+# 제목: 50자 이내, 마침표(.) 금지, 명령형
+# 본문: 72자마다 줄바꿈, "무엇을" + "왜" 설명
+# 제목과 본문 사이 빈 줄 1개

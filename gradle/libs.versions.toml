@@ -1,0 +1,81 @@
+[versions]
+spring-boot = "3.4.4"
+spring-dependency-management = "1.1.7"
+java = "21"
+
+# Database
+postgresql = "42.7.5"
+flyway = "11.4.1"
+
+# Redis
+redisson = "3.45.1"
+
+# Kafka
+spring-kafka = "3.3.4"
+
+# Resilience
+resilience4j = "2.3.0"
+
+# Architecture Test
+archunit = "1.4.0"
+
+# Monitoring
+micrometer-tracing = "1.4.4"
+
+# Jackson
+jackson = "2.18.3"
+
+# Test
+assertj = "3.27.3"
+mockito = "5.15.2"
+
+[libraries]
+# Spring Boot Starters
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+# Kafka
+spring-kafka = { module = "org.springframework.kafka:spring-kafka", version.ref = "spring-kafka" }
+spring-kafka-test = { module = "org.springframework.kafka:spring-kafka-test", version.ref = "spring-kafka" }
+
+# Database
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+h2 = { module = "com.h2database:h2" }
+
+# Redis
+redisson-spring-boot-starter = { module = "org.redisson:redisson-spring-boot-starter", version.ref = "redisson" }
+
+# Resilience
+resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
+
+# Monitoring
+micrometer-tracing-bridge-brave = { module = "io.micrometer:micrometer-tracing-bridge-brave", version.ref = "micrometer-tracing" }
+zipkin-reporter-brave = { module = "io.zipkin.reporter2:zipkin-reporter-brave" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+# Jackson
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+
+# Architecture Test
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+# JWT
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version = "0.12.6" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version = "0.12.6" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version = "0.12.6" }
+
+# Lombok
+lombok = { module = "org.projectlombok:lombok" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }

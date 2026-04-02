@@ -1,0 +1,26 @@
+plugins {
+    alias(libs.plugins.spring.boot)
+}
+
+dependencies {
+    implementation project(':pickme-common')
+    implementation project(':pickme-order')
+    implementation project(':pickme-payment')
+    implementation project(':pickme-product')
+    implementation project(':pickme-inventory')
+    implementation project(':pickme-member')
+    implementation project(':pickme-partner')
+    implementation project(':pickme-notification')
+    implementation project(':pickme-settlement')
+
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.micrometer.registry.prometheus
+
+    runtimeOnly libs.postgresql
+    runtimeOnly libs.flyway.core
+    runtimeOnly libs.flyway.postgresql
+    runtimeOnly libs.h2
+
+    testImplementation libs.spring.boot.starter.test
+}
