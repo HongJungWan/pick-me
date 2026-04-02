@@ -1,6 +1,11 @@
 package com.pickme.inventory.application;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pickme.common.event.DomainEvent;
 import com.pickme.common.idempotency.IdempotencyFilter;
+import com.pickme.common.outbox.OutboxEvent;
+import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.inventory.domain.model.Stock;
 import com.pickme.inventory.domain.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +23,8 @@ public class InventoryEventHandler {
     private static final int DEFAULT_INITIAL_STOCK = 0;
 
     private final StockRepository stockRepository;
+    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
     private final IdempotencyFilter idempotencyFilter;
 
     @Transactional
@@ -38,5 +45,61 @@ public class InventoryEventHandler {
 
         idempotencyFilter.markProcessed(eventId, "ProductRegisteredEvent");
         log.info("Stock 생성 완료: productId={}, stockId={}", productId, stock.getStockId());
+    }
+
+    @Transactional
+    public void handleOrderPlaced(UUID eventId, UUID orderId, UUID productId, int quantity) {
+        if (idempotencyFilter.isDuplicate(eventId)) return;
+
+        Stock stock = stockRepository.findByProductId(productId)
+                .orElseThrow(() -> new IllegalArgumentException("재고를 찾을 수 없습니다: productId=" + productId));
+
+        stock.reserve(quantity, orderId);
+        stockRepository.save(stock);
+        publishDomainEvents(stock);
+
+        idempotencyFilter.markProcessed(eventId, "OrderPlacedEvent");
+        log.info("재고 예약 처리: productId={}, orderId={}, qty={}", productId, orderId, quantity);
+    }
+
+    @Transactional
+    public void handleOrderConfirmed(UUID eventId, UUID orderId, UUID productId, int quantity) {
+        if (idempotencyFilter.isDuplicate(eventId)) return;
+
+        Stock stock = stockRepository.findByProductId(productId)
+                .orElseThrow(() -> new IllegalArgumentException("재고를 찾을 수 없습니다: productId=" + productId));
+
+        stock.confirm(quantity);
+        stockRepository.save(stock);
+
+        idempotencyFilter.markProcessed(eventId, "OrderConfirmedEvent");
+        log.info("재고 확정: productId={}, orderId={}, qty={}", productId, orderId, quantity);
+    }
+
+    @Transactional
+    public void handleOrderCancelled(UUID eventId, UUID orderId, UUID productId, int quantity) {
+        if (idempotencyFilter.isDuplicate(eventId)) return;
+
+        Stock stock = stockRepository.findByProductId(productId)
+                .orElseThrow(() -> new IllegalArgumentException("재고를 찾을 수 없습니다: productId=" + productId));
+
+        stock.cancel(quantity, orderId);
+        stockRepository.save(stock);
+        publishDomainEvents(stock);
+
+        idempotencyFilter.markProcessed(eventId, "OrderCancelledEvent");
+        log.info("재고 복원 (보상): productId={}, orderId={}, qty={}", productId, orderId, quantity);
+    }
+
+    private void publishDomainEvents(Stock stock) {
+        for (DomainEvent event : stock.getDomainEvents()) {
+            try {
+                String payload = objectMapper.writeValueAsString(event);
+                outboxRepository.save(OutboxEvent.from(event, payload));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("이벤트 직렬화 실패", e);
+            }
+        }
+        stock.clearDomainEvents();
     }
 }
