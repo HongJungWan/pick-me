@@ -10,7 +10,7 @@ import java.util.List;
 public class Partner implements com.pickme.common.event.DomainEventProvider {
     private final PartnerId partnerId;
     private final BusinessInfo businessInfo;
-    private ContractInfo contractInfo;
+    private final ContractInfo contractInfo;
     private PartnerStatus status;
     private final List<DomainEvent> domainEvents;
 
