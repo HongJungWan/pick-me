@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.common.event.DomainEvent;
 import com.pickme.common.outbox.OutboxEvent;
+import com.pickme.common.metrics.BusinessMetrics;
 import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.order.api.request.CreateOrderRequest;
 import com.pickme.order.domain.model.Address;
@@ -27,6 +28,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
+    private final BusinessMetrics businessMetrics;
 
     @Transactional
     public Order createOrder(CreateOrderRequest request) {
@@ -43,6 +45,7 @@ public class OrderService {
         Order order = Order.place(request.ordererId(), orderLines, shippingInfo);
         Order saved = orderRepository.save(order);
         publishDomainEvents(order);
+        businessMetrics.incrementOrderCreated();
         return saved;
     }
 
@@ -63,6 +66,7 @@ public class OrderService {
         order.cancel(reason);
         Order saved = orderRepository.save(order);
         publishDomainEvents(order);
+        businessMetrics.incrementOrderCancelled();
         return saved;
     }
 

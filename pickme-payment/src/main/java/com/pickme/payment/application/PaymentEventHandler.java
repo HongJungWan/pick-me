@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.common.event.DomainEvent;
 import com.pickme.common.idempotency.IdempotencyFilter;
+import com.pickme.common.metrics.BusinessMetrics;
 import com.pickme.common.outbox.OutboxEvent;
 import com.pickme.common.outbox.OutboxRepository;
 import com.pickme.payment.domain.model.Payment;
@@ -28,6 +29,7 @@ public class PaymentEventHandler {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
     private final IdempotencyFilter idempotencyFilter;
+    private final BusinessMetrics businessMetrics;
 
     @Transactional
     public void handleOrderPlaced(UUID eventId, UUID orderId, UUID ordererId, long totalAmount) {
@@ -44,9 +46,11 @@ public class PaymentEventHandler {
 
         if (pgResponse.isSuccess()) {
             payment.complete(pgResponse);
+            businessMetrics.incrementPaymentSuccess();
             log.info("결제 성공: orderId={}, pgTxnId={}", orderId, pgResponse.getTransactionId());
         } else {
             payment.fail(pgResponse.getMessage());
+            businessMetrics.incrementPaymentFailed();
             log.warn("결제 실패: orderId={}, reason={}", orderId, pgResponse.getMessage());
         }
 
