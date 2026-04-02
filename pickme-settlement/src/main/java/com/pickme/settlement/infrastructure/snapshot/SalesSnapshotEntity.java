@@ -65,6 +65,11 @@ public class SalesSnapshotEntity {
         this.updatedAt = Instant.now();
     }
 
+    public boolean isReconciled() {
+        long expected = this.totalSales - this.totalRefunds;
+        return expected == this.netSales;
+    }
+
     public static class SalesSnapshotId implements Serializable {
         private LocalDate aggregateDate;
         private UUID partnerId;

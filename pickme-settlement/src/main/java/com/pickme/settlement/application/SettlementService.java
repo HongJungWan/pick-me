@@ -38,10 +38,8 @@ public class SettlementService {
 
         log.info("=== 정산 Reconciliation 배치 시작: date={} ===", yesterday);
         for (SalesSnapshotEntity snapshot : snapshots) {
-            long expected = snapshot.getTotalSales() - snapshot.getTotalRefunds();
-            if (expected != snapshot.getNetSales()) {
-                log.error("정산 불일치 감지: partnerId={}, expected={}, actual={}",
-                        snapshot.getPartnerId(), expected, snapshot.getNetSales());
+            if (!snapshot.isReconciled()) {
+                log.error("정산 불일치 감지: partnerId={}", snapshot.getPartnerId());
             }
         }
         log.info("=== 정산 Reconciliation 배치 완료: {}건 검증 ===", snapshots.size());
