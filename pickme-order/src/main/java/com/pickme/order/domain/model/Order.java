@@ -69,12 +69,18 @@ public class Order {
 
     public void confirm() {
         changeStatus(OrderStatus.PAID);
-        domainEvents.add(new OrderConfirmedEvent(orderId.getValue()));
+        List<OrderConfirmedEvent.OrderLinePayload> linePayloads = orderLines.stream()
+                .map(l -> new OrderConfirmedEvent.OrderLinePayload(l.getProductId(), l.getQuantity()))
+                .toList();
+        domainEvents.add(new OrderConfirmedEvent(orderId.getValue(), linePayloads));
     }
 
     public void cancel(String reason) {
         changeStatus(OrderStatus.CANCELLED);
-        domainEvents.add(new OrderCancelledEvent(orderId.getValue(), reason));
+        List<OrderCancelledEvent.OrderLinePayload> linePayloads = orderLines.stream()
+                .map(l -> new OrderCancelledEvent.OrderLinePayload(l.getProductId(), l.getQuantity()))
+                .toList();
+        domainEvents.add(new OrderCancelledEvent(orderId.getValue(), reason, linePayloads));
     }
 
     public void requestRefund(String reason) {

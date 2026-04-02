@@ -62,14 +62,25 @@ public class InventoryEventConsumer {
                 }
                 case "OrderConfirmedEvent" -> {
                     UUID orderId = UUID.fromString(root.path("orderId").asText());
-                    // OrderConfirmedEvent에는 orderLines 정보가 없으므로,
-                    // 실제 구현에서는 orderId로 주문 항목을 조회해야 함 (CQRS snapshot 또는 별도 저장)
-                    // 현재는 로그만 남김
-                    log.info("OrderConfirmedEvent 수신: orderId={} (확정 처리는 orderLine 정보 필요)", orderId);
+                    JsonNode confirmedLines = root.path("orderLines");
+                    if (confirmedLines.isArray()) {
+                        for (JsonNode line : confirmedLines) {
+                            UUID productId = UUID.fromString(line.path("productId").asText());
+                            int quantity = line.path("quantity").asInt();
+                            eventHandler.handleOrderConfirmed(eventId, orderId, productId, quantity);
+                        }
+                    }
                 }
                 case "OrderCancelledEvent" -> {
                     UUID orderId = UUID.fromString(root.path("orderId").asText());
-                    log.info("OrderCancelledEvent 수신: orderId={} (복원 처리는 orderLine 정보 필요)", orderId);
+                    JsonNode cancelledLines = root.path("orderLines");
+                    if (cancelledLines.isArray()) {
+                        for (JsonNode line : cancelledLines) {
+                            UUID productId = UUID.fromString(line.path("productId").asText());
+                            int quantity = line.path("quantity").asInt();
+                            eventHandler.handleOrderCancelled(eventId, orderId, productId, quantity);
+                        }
+                    }
                 }
                 default -> log.debug("무시된 Order 이벤트: {}", eventType);
             }

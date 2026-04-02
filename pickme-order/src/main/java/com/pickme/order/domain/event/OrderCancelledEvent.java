@@ -2,18 +2,21 @@ package com.pickme.order.domain.event;
 
 import com.pickme.common.event.DomainEvent;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class OrderCancelledEvent implements DomainEvent {
     private final UUID eventId;
     private final UUID orderId;
     private final String reason;
+    private final List<OrderLinePayload> orderLines;
     private final Instant occurredAt;
 
-    public OrderCancelledEvent(UUID orderId, String reason) {
+    public OrderCancelledEvent(UUID orderId, String reason, List<OrderLinePayload> orderLines) {
         this.eventId = UUID.randomUUID();
         this.orderId = orderId;
         this.reason = reason;
+        this.orderLines = orderLines;
         this.occurredAt = Instant.now();
     }
 
@@ -24,4 +27,7 @@ public class OrderCancelledEvent implements DomainEvent {
     @Override public Instant getOccurredAt() { return occurredAt; }
     public UUID getOrderId() { return orderId; }
     public String getReason() { return reason; }
+    public List<OrderLinePayload> getOrderLines() { return orderLines; }
+
+    public record OrderLinePayload(UUID productId, int quantity) {}
 }
