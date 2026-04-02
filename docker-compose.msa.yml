@@ -10,8 +10,8 @@ services:
       - "5433:5432"
     environment:
       POSTGRES_DB: order_db
-      POSTGRES_USER: pickme
-      POSTGRES_PASSWORD: pickme1234
+      POSTGRES_USER: ${POSTGRES_USER:-pickme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pickme1234}
     volumes:
       - postgres-order-data:/var/lib/postgresql/data
     healthcheck:
@@ -27,8 +27,8 @@ services:
       - "5434:5432"
     environment:
       POSTGRES_DB: payment_db
-      POSTGRES_USER: pickme
-      POSTGRES_PASSWORD: pickme1234
+      POSTGRES_USER: ${POSTGRES_USER:-pickme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pickme1234}
     volumes:
       - postgres-payment-data:/var/lib/postgresql/data
     healthcheck:
@@ -44,8 +44,8 @@ services:
       - "5435:5432"
     environment:
       POSTGRES_DB: inventory_db
-      POSTGRES_USER: pickme
-      POSTGRES_PASSWORD: pickme1234
+      POSTGRES_USER: ${POSTGRES_USER:-pickme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pickme1234}
     volumes:
       - postgres-inventory-data:/var/lib/postgresql/data
     healthcheck:
@@ -60,7 +60,7 @@ services:
     container_name: pickme-redis
     ports:
       - "6379:6379"
-    command: redis-server --requirepass pickme1234
+    command: redis-server --requirepass ${REDIS_PASSWORD:-pickme1234}
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0

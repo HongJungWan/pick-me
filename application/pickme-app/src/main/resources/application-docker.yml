@@ -3,9 +3,9 @@
 
 spring:
   datasource:
-    url: jdbc:postgresql://postgres:5432/pickme_db
-    username: pickme
-    password: pickme1234
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/pickme_db}
+    username: ${DB_USER:pickme}
+    password: ${DB_PASS:pickme1234}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
