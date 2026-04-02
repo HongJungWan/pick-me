@@ -97,6 +97,26 @@ services:
     ports:
       - "9411:9411"
 
+  kafka-connect:
+    image: debezium/connect:2.5
+    container_name: pickme-kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: pickme-connect-cluster
+      CONFIG_STORAGE_TOPIC: pickme-connect-configs
+      OFFSET_STORAGE_TOPIC: pickme-connect-offsets
+      STATUS_STORAGE_TOPIC: pickme-connect-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
   prometheus:
     image: prom/prometheus:latest
     container_name: pickme-prometheus
