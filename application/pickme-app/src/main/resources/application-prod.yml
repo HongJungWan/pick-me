@@ -1,16 +1,12 @@
+# Production 프로필 — Config Server가 제공하지 않는 서비스 고유 설정만 유지
+# Kafka, Redis, HikariCP Timeout → Config Server로 이관 완료
+
 spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 40
-      minimum-idle: 10
-      connection-timeout: 3000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      leak-detection-threshold: 5000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -18,22 +14,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-    producer:
-      acks: all
-      properties:
-        enable.idempotence: true
-    consumer:
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-    listener:
-      ack-mode: manual
-  data:
-    redis:
-      host: ${REDIS_HOST}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD}
 
 logging:
   level:

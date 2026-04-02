@@ -1,12 +1,8 @@
-# Timeout 정책 중앙 집중 관리 (모든 프로필에서 import하여 사용)
+# Timeout 정책 — Config Server로 이관 완료
+# HikariCP, Resilience4j, 분산 락, 모듈별 풀 → Config Server (config/application.yml)
+# 이 파일에는 Config Server에 없는 고유 설정만 유지
 
 spring:
-  datasource:
-    hikari:
-      connection-timeout: 3000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      leak-detection-threshold: 5000
   data:
     redis:
       timeout: 1000
@@ -19,64 +15,3 @@ spring:
       properties:
         max.poll.interval.ms: 30000
         session.timeout.ms: 10000
-
-# Resilience4j Circuit Breaker
-resilience4j:
-  circuitbreaker:
-    instances:
-      pg-payment:
-        sliding-window-size: 10
-        failure-rate-threshold: 50
-        wait-duration-in-open-state: 30s
-        permitted-number-of-calls-in-half-open-state: 3
-        slow-call-rate-threshold: 80
-        slow-call-duration-threshold: 5s
-      delivery-api:
-        sliding-window-size: 20
-        failure-rate-threshold: 60
-        wait-duration-in-open-state: 60s
-      kakao-notification:
-        sliding-window-size: 10
-        failure-rate-threshold: 70
-        wait-duration-in-open-state: 15s
-
-# 분산 락 기본 설정 (참고용, 실제 적용은 @DistributedLock 어노테이션)
-pickme:
-  lock:
-    default-wait-time: 3
-    default-lease-time: 5
-  datasource:
-    pool:
-      modules:
-        order:
-          max-pool-size: 10
-          min-idle: 3
-          connection-timeout: 3000
-        payment:
-          max-pool-size: 10
-          min-idle: 3
-          connection-timeout: 3000
-        inventory:
-          max-pool-size: 10
-          min-idle: 3
-          connection-timeout: 3000
-        product:
-          max-pool-size: 5
-          min-idle: 2
-          connection-timeout: 3000
-        member:
-          max-pool-size: 5
-          min-idle: 2
-          connection-timeout: 3000
-        partner:
-          max-pool-size: 5
-          min-idle: 2
-          connection-timeout: 3000
-        notification:
-          max-pool-size: 5
-          min-idle: 2
-          connection-timeout: 3000
-        settlement:
-          max-pool-size: 5
-          min-idle: 2
-          connection-timeout: 3000

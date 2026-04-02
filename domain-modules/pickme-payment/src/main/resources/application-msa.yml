@@ -1,3 +1,6 @@
+# Payment 서비스 독립 실행 시 설정 (MSA 전환 후)
+# Kafka, Redis → Config Server로 이관 완료
+
 spring:
   application:
     name: pickme-payment-service
@@ -5,29 +8,9 @@ spring:
     url: ${PAYMENT_DB_URL:jdbc:postgresql://postgres-payment:5432/payment_db}
     username: ${PAYMENT_DB_USER:pickme}
     password: ${PAYMENT_DB_PASS:pickme1234}
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 3000
   jpa:
     hibernate:
       ddl-auto: validate
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
-    producer:
-      acks: all
-      properties:
-        enable.idempotence: true
-    consumer:
-      auto-offset-reset: earliest
-      enable-auto-commit: false
-    listener:
-      ack-mode: manual
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:pickme1234}
 
 server:
   port: 8082
