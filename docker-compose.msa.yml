@@ -89,7 +89,7 @@ services:
   pickme-order:
     build:
       context: .
-      dockerfile: pickme-order/Dockerfile
+      dockerfile: domain-modules/pickme-order/Dockerfile
     container_name: pickme-order-service
     ports:
       - "8081:8081"
@@ -107,7 +107,7 @@ services:
   pickme-payment:
     build:
       context: .
-      dockerfile: pickme-payment/Dockerfile
+      dockerfile: domain-modules/pickme-payment/Dockerfile
     container_name: pickme-payment-service
     ports:
       - "8082:8082"
@@ -125,7 +125,7 @@ services:
   pickme-inventory:
     build:
       context: .
-      dockerfile: pickme-inventory/Dockerfile
+      dockerfile: domain-modules/pickme-inventory/Dockerfile
     container_name: pickme-inventory-service
     ports:
       - "8083:8083"
@@ -144,7 +144,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: pickme-gateway/Dockerfile
+      dockerfile: application/pickme-gateway/Dockerfile
     container_name: pickme-api-gateway
     ports:
       - "8080:8080"
