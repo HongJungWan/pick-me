@@ -1,0 +1,47 @@
+# Timeout 정책 중앙 집중 관리 (모든 프로필에서 import하여 사용)
+
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 5000
+  data:
+    redis:
+      timeout: 1000
+  kafka:
+    producer:
+      properties:
+        delivery.timeout.ms: 3000
+        request.timeout.ms: 1500
+    consumer:
+      properties:
+        max.poll.interval.ms: 30000
+        session.timeout.ms: 10000
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      pg-payment:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-rate-threshold: 80
+        slow-call-duration-threshold: 5s
+      delivery-api:
+        sliding-window-size: 20
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 60s
+      kakao-notification:
+        sliding-window-size: 10
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 15s
+
+# 분산 락 기본 설정 (참고용, 실제 적용은 @DistributedLock 어노테이션)
+pickme:
+  lock:
+    default-wait-time: 3
+    default-lease-time: 5

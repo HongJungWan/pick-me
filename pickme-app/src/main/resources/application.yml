@@ -3,6 +3,7 @@ spring:
     name: pick-me
   profiles:
     active: local
+    include: timeout
 
 server:
   port: 8080
