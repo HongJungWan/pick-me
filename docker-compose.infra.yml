@@ -4,6 +4,16 @@ services:
     container_name: pickme-postgres
     ports:
       - "5432:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "wal_keep_size=1024"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -76,6 +86,12 @@ services:
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.notification.events --partitions 3 --replication-factor 1
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.settlement.events --partitions 1 --replication-factor 1
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme.dead-letter --partitions 3 --replication-factor 1
+
+      echo 'Creating Kafka Connect internal topics...'
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme-connect-configs --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme-connect-offsets --partitions 25 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme-connect-status --partitions 5 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic pickme-debezium-heartbeat --partitions 1 --replication-factor 1
       echo 'All topics created.'
       "
 
@@ -111,6 +127,16 @@ services:
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
       STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      HEAP_OPTS: "-Xms512m -Xmx1g"
+      KAFKA_JMX_PORT: "9875"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     depends_on:
       kafka:
         condition: service_healthy

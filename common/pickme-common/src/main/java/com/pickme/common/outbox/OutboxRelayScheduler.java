@@ -3,6 +3,7 @@ package com.pickme.common.outbox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnBean(KafkaTemplate.class)
+@ConditionalOnProperty(name = "pickme.outbox.relay.enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxRelayScheduler {
 
     private static final int MAX_RETRY = 5;

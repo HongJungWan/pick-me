@@ -53,6 +53,9 @@ resilience4j:
 
 # 분산 락 / Rate Limiter
 pickme:
+  outbox:
+    relay:
+      enabled: true  # Debezium CDC 컷오버 시 false로 변경
   lock:
     default-wait-time: 3
     default-lease-time: 5

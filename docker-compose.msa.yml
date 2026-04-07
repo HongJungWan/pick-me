@@ -8,6 +8,16 @@ services:
     container_name: pickme-postgres-order
     ports:
       - "5433:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "wal_keep_size=1024"
     environment:
       POSTGRES_DB: order_db
       POSTGRES_USER: ${POSTGRES_USER:-pickme}
@@ -25,6 +35,16 @@ services:
     container_name: pickme-postgres-payment
     ports:
       - "5434:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "wal_keep_size=1024"
     environment:
       POSTGRES_DB: payment_db
       POSTGRES_USER: ${POSTGRES_USER:-pickme}
@@ -42,6 +62,16 @@ services:
     container_name: pickme-postgres-inventory
     ports:
       - "5435:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "wal_keep_size=1024"
     environment:
       POSTGRES_DB: inventory_db
       POSTGRES_USER: ${POSTGRES_USER:-pickme}
@@ -128,7 +158,7 @@ services:
       dockerfile: domain-modules/pickme-inventory/Dockerfile
     container_name: pickme-inventory-service
     ports:
-      - "8083:8083"
+      - "8093:8083"
     environment:
       SPRING_PROFILES_ACTIVE: msa
       INVENTORY_DB_URL: jdbc:postgresql://postgres-inventory:5432/inventory_db

@@ -1,0 +1,48 @@
+{
+  "name": "pickme-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "pickme",
+    "database.password": "pickme1234",
+    "database.dbname": "pickme_db",
+    "topic.prefix": "pickme-cdc",
+
+    "schema.include.list": "order_schema,payment_schema,product_schema,inventory_schema,member_schema,partner_schema,notification_schema,settlement_schema",
+    "table.include.list": "order_schema.outbox_events,payment_schema.outbox_events,product_schema.outbox_events,inventory_schema.outbox_events,member_schema.outbox_events,partner_schema.outbox_events,notification_schema.outbox_events,settlement_schema.outbox_events",
+
+    "slot.name": "pickme_outbox_slot",
+    "publication.name": "pickme_outbox_pub",
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+
+    "tombstones.on.delete": "false",
+    "snapshot.mode": "no_data",
+
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "event_id",
+    "transforms.outbox.table.field.event.key": "aggregate_id",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.field.event.payload.id": "aggregate_id",
+    "transforms.outbox.route.by.field": "aggregate_type",
+    "transforms.outbox.route.topic.replacement": "pickme.${routedByValue}.events",
+    "transforms.outbox.table.expand.json.payload": "false",
+    "transforms.outbox.table.fields.additional.placement": "event_type:header:eventType",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+
+    "heartbeat.interval.ms": "10000",
+    "heartbeat.action.query": "INSERT INTO order_schema.debezium_heartbeat (id, ts) VALUES (1, NOW()) ON CONFLICT (id) DO UPDATE SET ts = NOW()",
+
+    "max.batch.size": "2048",
+    "max.queue.size": "16384",
+    "poll.interval.ms": "100",
+
+    "errors.tolerance": "none",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true"
+  }
+}
