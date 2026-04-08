@@ -30,10 +30,34 @@ CALCULATING → CONFIRMED → TRANSFER_REQUESTED → COMPLETED
 - 매일 02:00 실행 (`@Scheduled`)
 - `SalesSnapshotEntity.isReconciled()`: 도메인에 캡슐화된 정합성 검증
 
-## 구독 이벤트
+## 이벤트 흐름
 
-| 이벤트 | 발행자 | 처리 |
-|--------|--------|------|
-| PaymentCompletedEvent | Payment | 매출 누적 |
-| RefundCompletedEvent | Payment | 환불 반영 |
-| PartnerApprovedEvent | Partner | 파트너 스냅샷 upsert |
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| SettlementCompletedEvent | `pickme.settlement.events` | Notification (정산 완료 알림) |
+
+### 구독 이벤트
+
+| 이벤트 | 발행자 | 토픽 | 처리 |
+|--------|--------|------|------|
+| PaymentCompletedEvent | Payment | `pickme.payment.events` | 매출 누적 (recordSale) |
+| RefundCompletedEvent | Payment | `pickme.payment.events` | 환불 반영 (recordRefund) |
+| PartnerApprovedEvent | Partner | `pickme.partner.events` | 파트너 스냅샷 upsert |
+
+## 패키지 구조
+
+```
+pickme-settlement/
+├── api/              SettlementController, Request/Response DTO
+├── application/      SettlementService, SettlementEventHandler, ReconciliationBatch
+├── domain/
+│   ├── model/        Settlement, SettlementId, SettlementStatus, SettlementPeriod
+│   ├── event/        SettlementCompletedEvent
+│   └── repository/   SettlementRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    ├── messaging/    SettlementEventConsumer
+    └── snapshot/     SalesSnapshotEntity, PartnerSnapshotEntity (ETL Aggregate)
+```

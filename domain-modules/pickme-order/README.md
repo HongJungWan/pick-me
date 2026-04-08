@@ -1,6 +1,6 @@
 # pickme-order (Order Context)
 
-> 주문 생성, 상태 관리, Saga 이벤트 오케스트레이션
+> 주문 생성, 상태 관리, Saga 이벤트 오케스트레이션 — Choreography 기반
 
 ## Aggregate Root — `Order`
 
@@ -36,15 +36,26 @@ PLACED → PAYMENT_PENDING → PAID → PREPARING → SHIPPED → DELIVERED
 - `order_schema.product_snapshot` — 상품 이벤트 구독 → 상품명/가격 스냅샷
 - `order_schema.member_snapshot` — 회원 이벤트 구독 → 회원명/등급 스냅샷
 
-## 구독 이벤트
+## 이벤트 흐름
 
-| 이벤트 | 발행자 | 처리 |
-|--------|--------|------|
-| PaymentCompletedEvent | Payment | 주문 확정 |
-| PaymentFailedEvent | Payment | 주문 취소 (보상) |
-| InventoryShortageEvent | Inventory | 주문 취소 (보상) |
-| ProductRegisteredEvent | Product | product_snapshot 갱신 |
-| MemberRegisteredEvent | Member | member_snapshot 갱신 |
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| OrderPlacedEvent | `pickme.order.events` | Inventory (재고 예약), Payment (결제 처리), Notification (알림) |
+| OrderConfirmedEvent | `pickme.order.events` | Inventory (예약 확정), Notification (알림) |
+| OrderCancelledEvent | `pickme.order.events` | Inventory (재고 복원), Notification (알림) |
+| OrderRefundRequestedEvent | `pickme.order.events` | Payment (환불 처리) |
+
+### 구독 이벤트
+
+| 이벤트 | 발행자 | 토픽 | 처리 |
+|--------|--------|------|------|
+| PaymentCompletedEvent | Payment | `pickme.payment.events` | 주문 확정 (Saga) |
+| PaymentFailedEvent | Payment | `pickme.payment.events` | 주문 취소 (보상 트랜잭션) |
+| InventoryShortageEvent | Inventory | `pickme.inventory.events` | 주문 취소 (보상 트랜잭션) |
+| ProductRegisteredEvent | Product | `pickme.product.events` | product_snapshot 갱신 (CQRS) |
+| MemberRegisteredEvent | Member | `pickme.member.events` | member_snapshot 갱신 (CQRS) |
 
 ## API
 

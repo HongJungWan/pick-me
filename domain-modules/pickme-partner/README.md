@@ -21,6 +21,19 @@
 - `DeliveryGateway` — 택배사 API (requestDelivery, getTrackingInfo)
 - `NotificationGateway` — 카카오 알림톡/SMS API (sendKakaoAlimtalk, sendSms)
 
+## 이벤트 흐름
+
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| PartnerApprovedEvent | `pickme.partner.events` | Settlement (파트너 스냅샷 upsert) |
+| PartnerSuspendedEvent | `pickme.partner.events` | (향후 상품 비활성화 연동) |
+
+### 구독 이벤트
+
+없음 — Partner는 이벤트 발행만 하는 파트너 관리 서비스.
+
 ## API
 
 | Method | URI | 설명 |
@@ -28,3 +41,18 @@
 | POST | `/api/v1/partners` | 파트너 등록 |
 | GET | `/api/v1/partners/{id}` | 파트너 조회 |
 | POST | `/api/v1/partners/{id}/approve` | 파트너 승인 |
+
+## 패키지 구조
+
+```
+pickme-partner/
+├── api/              PartnerController, Request/Response DTO
+├── application/      PartnerService
+├── domain/
+│   ├── model/        Partner, PartnerId, BusinessInfo, ContractInfo, PartnerStatus
+│   ├── event/        PartnerApprovedEvent, PartnerSuspendedEvent
+│   └── repository/   PartnerRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    └── external/     DeliveryGateway, NotificationGateway (ACL)
+```

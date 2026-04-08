@@ -43,9 +43,44 @@ Bean 등록은 `infrastructure/config/PaymentDomainConfig.java`에서 수행.
 - `PgPaymentGateway` — PG사 API Port (PaymentProcessingService.PgGateway extends)
 - `MockPgPaymentAdapter` — Mock 구현 + Resilience4j Circuit Breaker
 
+## 이벤트 흐름
+
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| PaymentCompletedEvent | `pickme.payment.events` | Order (주문 확정), Notification (알림), Settlement (매출 집계) |
+| PaymentFailedEvent | `pickme.payment.events` | Order (주문 취소 보상) |
+| RefundCompletedEvent | `pickme.payment.events` | Settlement (환불 반영), Notification (알림) |
+
+### 구독 이벤트
+
+| 이벤트 | 발행자 | 토픽 | 처리 |
+|--------|--------|------|------|
+| OrderPlacedEvent | Order | `pickme.order.events` | 결제 처리 시작 (processNewPayment) |
+| OrderRefundRequestedEvent | Order | `pickme.order.events` | 환불 처리 |
+
 ## API
 
 | Method | URI | 설명 |
 |--------|-----|------|
 | GET | `/api/v1/payments/{id}` | 결제 조회 |
 | GET | `/api/v1/payments?orderId=` | 주문별 결제 조회 |
+
+## 패키지 구조
+
+```
+pickme-payment/
+├── api/              PaymentController, Request/Response DTO
+├── application/      PaymentService, PaymentEventHandler
+├── domain/
+│   ├── model/        Payment, PaymentId, PaymentMethod, PaymentStatus, Money, PgResponse
+│   ├── event/        PaymentCompletedEvent, PaymentFailedEvent, RefundCompletedEvent
+│   ├── service/      PaymentProcessingService (도메인 순수)
+│   └── repository/   PaymentRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    ├── external/     MockPgPaymentAdapter (PG 연동 + Circuit Breaker)
+    ├── messaging/    PaymentSagaConsumer
+    └── config/       PaymentDomainConfig (Domain Service Bean 등록)
+```

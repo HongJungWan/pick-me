@@ -30,6 +30,20 @@ DRAFT → ON_SALE → SOLD_OUT / HIDDEN → DISCONTINUED
 - **Null Object Cache**: 미존재 상품도 1분 TTL 캐시
 - **Warm-up**: `ApplicationReadyEvent` 시 Top 100 사전 로딩
 
+## 이벤트 흐름
+
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| ProductRegisteredEvent | `pickme.product.events` | Inventory (Stock 자동 생성), Order (product_snapshot 갱신) |
+| ProductInfoChangedEvent | `pickme.product.events` | Order (product_snapshot 갱신) |
+| ProductPriceChangedEvent | `pickme.product.events` | Order (product_snapshot 갱신) |
+
+### 구독 이벤트
+
+없음 — Product는 이벤트 발행만 하는 순수 카탈로그 서비스.
+
 ## API
 
 | Method | URI | 설명 |
@@ -38,3 +52,18 @@ DRAFT → ON_SALE → SOLD_OUT / HIDDEN → DISCONTINUED
 | GET | `/api/v1/products/{id}` | 상품 조회 (캐시) |
 | GET | `/api/v1/products` | 상품 목록 |
 | PATCH | `/api/v1/products/{id}` | 상품 수정 (캐시 무효화) |
+
+## 패키지 구조
+
+```
+pickme-product/
+├── api/              ProductController, Request/Response DTO
+├── application/      ProductService
+├── domain/
+│   ├── model/        Product, ProductId, ProductName, ProductPrice, Category, ProductOption, ProductStatus
+│   ├── event/        ProductRegisteredEvent, ProductInfoChangedEvent, ProductPriceChangedEvent
+│   └── repository/   ProductRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    └── config/       ProductCacheConfig, CacheWarmUpRunner (Top 100 사전 로딩)
+```

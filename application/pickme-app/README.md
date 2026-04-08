@@ -24,6 +24,8 @@
 | V12 | dead_letter_events |
 | V13 | orders 테이블 월별 Range Partitioning |
 | V14 | settlement_schema: partner_snapshot |
+| V15 | Debezium Heartbeat 테이블 생성 (WAL 슬롯 LSN 전진용) |
+| V16 | Outbox 폴링 컬럼 제거 (published, published_at, retry_count) — 8개 스키마 |
 
 ## 프로필
 
@@ -36,5 +38,12 @@
 
 ## 배치
 
-- `ConsistencyCheckBatch`: 매일 03:00 — 좀비 주문 감지 + 주문-결제 정합성
-- `ConsistencyFixController`: POST /api/v1/admin/consistency/{orderId}/fix — 수동 보정
+| 클래스 | 스케줄 | 역할 |
+|--------|--------|------|
+| `ConsistencyCheckBatch` | 매일 03:00 | 좀비 주문 감지 (PLACED/PAYMENT_PENDING > 2시간) + 주문-결제 정합성 검증 |
+| `ConsistencyFixController` | 수동 | POST /api/v1/admin/consistency/{orderId}/fix — 3가지 시나리오 보정 |
+
+보정 시나리오:
+1. PAID 상태인데 Payment 없음 → 주문 취소
+2. CANCELLED 상태인데 Payment 존재 → 환불 처리
+3. 좀비 주문 (2시간 초과 미결제) → 주문 취소

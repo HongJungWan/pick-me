@@ -35,7 +35,7 @@
 
 **핵심 원칙:**
 - **MSA**: 모듈 간 직접 import 금지 (ArchUnit CI 강제), Schema-per-Module DB 격리
-- **EDA**: Transactional Outbox → Kafka, 멱등성 보장, DLQ 모니터링
+- **EDA**: Transactional Outbox → Debezium CDC → Kafka, 멱등성 보장, DLQ 모니터링
 - **DDD**: Rich Domain Model, 도메인 순수성 (Spring/JPA 무의존), Tell Don't Ask
 
 ---
@@ -73,10 +73,14 @@
 | Message Broker | Apache Kafka (KRaft) |
 | Resilience | Resilience4j (Circuit Breaker) |
 | Architecture Test | ArchUnit |
+| CDC | Debezium 2.5 (PostgreSQL WAL → Kafka) |
 | Monitoring | Micrometer + Prometheus + Grafana |
+| Logging | Promtail + Loki |
 | Tracing | Zipkin |
 | Container | Docker + Docker Compose |
 | Gateway | Spring Cloud Gateway |
+| Config | Spring Cloud Config Server |
+| Discovery | Spring Cloud Netflix Eureka |
 | CI | GitHub Actions |
 
 ---
@@ -117,6 +121,7 @@ pick-me/
 | **pickme-app** | Spring Boot 실행, Flyway, 프로필 | [README](application/pickme-app/README.md) |
 | **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | [README](application/pickme-gateway/README.md) |
 | **pickme-config-server** | Spring Cloud Config Server, 설정 중앙 관리 | [README](application/pickme-config-server/README.md) |
+| **pickme-discovery** | Eureka Server, 서비스 디스커버리 | [README](application/pickme-discovery/README.md) |
 
 ### 공통 모듈 (`common/`)
 
@@ -158,6 +163,69 @@ pick-me/
 
 ---
 
+## CDC 마이그레이션: Outbox 폴링 → Debezium 로그 기반
+
+이벤트 전파 메커니즘을 Outbox 폴링 Relay에서 Debezium CDC(로그 기반)로 전환했습니다.
+
+```
+Before (Polling):
+  OutboxRelayScheduler → 500ms 폴링 → Kafka
+  한계: ~20 events/sec, DB 부하, 다운타임 시 누락 위험
+
+After (Debezium CDC):
+  PostgreSQL WAL → Debezium 2.5 (pgoutput) → Outbox EventRouter SMT → Kafka
+  개선: batch 2048, 밀리초 감지, DB 부하 없음, LSN 기반 자동 복구
+```
+
+| 항목 | Before (폴링) | After (Debezium CDC) |
+|------|-------------|---------------------|
+| 이벤트 감지 | 500ms 주기 폴링 | WAL 실시간 구독 |
+| DB 부하 | 매 500ms SELECT 쿼리 | WAL 읽기만 (추가 쿼리 없음) |
+| 다운타임 복구 | 누락 위험 | LSN 기반 자동 재개 |
+| DELETE 감지 | 불가 | 가능 |
+| 스키마 오버헤드 | published, retry_count 등 | 제거 (V16 마이그레이션) |
+
+**전환 전략**: 병렬 운영(`pickme.outbox.relay.enabled: true`) → 커트오버(`false`) → V16 컬럼 정리
+
+> 상세 기술 아티클: [CDC — Outbox 폴링에서 Debezium 로그 기반으로](tech-blog/cdc.md)
+
+---
+
+## 인프라 구성
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Docker Compose Stack                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  PostgreSQL 16         Redis 7            Kafka (KRaft)          │
+│  ┌──────────────┐     ┌──────────┐       ┌──────────────┐      │
+│  │wal_level=    │     │분산 락    │       │pickme.order  │      │
+│  │  logical     │     │캐시      │       │pickme.payment│      │
+│  │Schema-per-   │     │Rate Limit│       │  ... events  │      │
+│  │  Module      │     └──────────┘       └──────┬───────┘      │
+│  └──────┬───────┘                                │               │
+│         │                                        │               │
+│         │  WAL                          ┌────────▼───────┐      │
+│         └────────────────────────────── │ Kafka Connect   │      │
+│                                         │ (Debezium 2.5)  │      │
+│                                         └─────────────────┘      │
+│                                                                   │
+│  Prometheus ──▶ Grafana        Promtail ──▶ Loki                │
+│  Zipkin (분산 트레이싱)         Kafka UI (토픽 모니터링)            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Docker Compose 파일
+
+| 파일 | 용도 |
+|------|------|
+| `docker-compose.infra.yml` | 인프라만 실행 (로컬 개발) |
+| `docker-compose.yml` | 인프라 + 앱 전체 실행 |
+| `docker-compose.msa.yml` | MSA 모드 (서비스 분리 배포) |
+
+---
+
 ## 실행 방법
 
 ```bash
@@ -167,6 +235,9 @@ docker compose -f docker-compose.infra.yml up -d
 # 전체 실행 (인프라 + 앱)
 docker compose up -d --build
 
+# MSA 모드 실행 (서비스 분리 배포)
+docker compose -f docker-compose.msa.yml up -d --build
+
 # 빌드 + 테스트
 ./gradlew clean build
 ```
@@ -174,11 +245,16 @@ docker compose up -d --build
 | 서비스 | URL |
 |--------|-----|
 | Application | http://localhost:8080 |
+| API Gateway | http://localhost:8060 |
+| Config Server | http://localhost:8888 |
+| Eureka Dashboard | http://localhost:8761 |
 | Kafka UI | http://localhost:8089 |
+| Kafka Connect (Debezium) | http://localhost:8083 |
 | Zipkin | http://localhost:9411 |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
 | PostgreSQL | localhost:5432 |
+| Redis | localhost:6379 |
 
 ---
 

@@ -21,6 +21,41 @@
 - `send()`: PENDING → SENT (PENDING이 아니면 예외)
 - `markFailed()`: PENDING → FAILED (PENDING이 아니면 예외)
 
-## 구독 토픽
+## 이벤트 흐름
 
-`pickme.order.events`, `pickme.payment.events`, `pickme.member.events`, `pickme.inventory.events`, `pickme.settlement.events`
+### 발행 이벤트
+
+없음 — Notification은 **Sink 모듈** (이벤트 소비만 수행, 발행하지 않음).
+
+### 구독 토픽
+
+| 토픽 | 소비 이벤트 | 알림 유형 |
+|------|-----------|----------|
+| `pickme.order.events` | OrderPlaced, OrderShipped, OrderDelivered | 고객 알림 |
+| `pickme.payment.events` | PaymentCompleted | 고객 알림 |
+| `pickme.member.events` | MemberRegistered | 가입 환영 |
+| `pickme.inventory.events` | InventoryShortage | 운영 알림 |
+| `pickme.settlement.events` | SettlementCompleted | 파트너 알림 |
+
+### 알림 채널
+
+| 채널 | 용도 |
+|------|------|
+| EMAIL | 주문 확인, 가입 환영, 정산 완료 |
+| SMS | 배송 시작/완료 |
+| KAKAO | 주문 접수, 결제 완료 |
+
+## 패키지 구조
+
+```
+pickme-notification/
+├── api/              (현재 외부 API 없음)
+├── application/      NotificationEventHandler
+├── domain/
+│   ├── model/        Notification, NotificationId, NotificationChannel, SendStatus
+│   ├── event/        (발행 이벤트 없음)
+│   └── repository/   NotificationRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    └── messaging/    NotificationEventConsumer (5개 토픽 구독)
+```

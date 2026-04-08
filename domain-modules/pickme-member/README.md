@@ -33,6 +33,19 @@
 - `SecurityConfig`: Stateless, CSRF 비활성화, 공개 경로 설정
 - 로그인 `@RateLimiter`: IP+이메일당 5회/5분
 
+## 이벤트 흐름
+
+### 발행 이벤트 → Kafka 토픽
+
+| 이벤트 | 토픽 | 소비자 |
+|--------|------|--------|
+| MemberRegisteredEvent | `pickme.member.events` | Order (member_snapshot 갱신), Notification (가입 환영 알림) |
+| MemberGradeChangedEvent | `pickme.member.events` | (향후 등급별 할인 정책 연동) |
+
+### 구독 이벤트
+
+없음 — Member는 이벤트 발행만 하는 인증/회원 서비스.
+
 ## API
 
 | Method | URI | 설명 |
@@ -40,3 +53,19 @@
 | POST | `/api/v1/auth/signup` | 회원 가입 |
 | POST | `/api/v1/auth/login` | 로그인 (JWT 발급) |
 | GET | `/api/v1/members/{id}` | 회원 조회 |
+
+## 패키지 구조
+
+```
+pickme-member/
+├── api/              MemberController, AuthController, Request/Response DTO
+├── application/      MemberService, AuthService
+├── domain/
+│   ├── model/        Member, MemberId, Email, Password, MemberName, PhoneNumber, MemberGrade
+│   ├── event/        MemberRegisteredEvent, MemberGradeChangedEvent
+│   └── repository/   MemberRepository (Interface)
+└── infrastructure/
+    ├── persistence/  JPA Entity, Mapper, Repository 구현체
+    ├── security/     JwtProvider, SecurityConfig
+    └── config/       MemberDomainConfig
+```

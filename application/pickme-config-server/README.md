@@ -40,6 +40,18 @@ curl http://localhost:8888/pickme-payment/default
 
 `8888` (Spring Cloud Config 표준 포트)
 
+## 주요 중앙 관리 설정
+
+| 설정 항목 | 위치 | 설명 |
+|----------|------|------|
+| Kafka 공통 | `application.yml` | bootstrap-servers, consumer/producer 설정 |
+| Redis 공통 | `application.yml` | host, port, 커넥션 풀 |
+| Timeout | `application.yml` | 서비스별 요청 타임아웃 |
+| Circuit Breaker | `application.yml` | Resilience4j 임계치, 슬라이딩 윈도우 |
+| Outbox Relay | `application.yml` | `pickme.outbox.relay.enabled` (CDC 전환 후 false) |
+| JWT Secret | `pickme-member.yml` | Access/Refresh 토큰 시크릿 |
+| Slack Webhook | `pickme-notification.yml` | DLT 알림용 Webhook URL |
+
 ## 설정 백엔드
 
 현재 `native` 프로필 사용 (classpath 기반 로컬 파일). Git 저장소 백엔드로 전환 가능.
