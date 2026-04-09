@@ -1,6 +1,8 @@
 package com.pickme.orchestration.config;
 
+import com.pickme.orchestration.activity.OrderActivities;
 import com.pickme.orchestration.activity.OrderActivitiesImpl;
+import com.pickme.orchestration.activity.ShadowOrderActivitiesImpl;
 import com.pickme.orchestration.workflow.OrderFulfillmentWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
@@ -21,15 +23,20 @@ public class TemporalWorkerBootstrap {
     @Bean
     public WorkerFactory workerFactory(WorkflowClient workflowClient,
                                        TemporalProperties properties,
-                                       OrderActivitiesImpl orderActivities) {
+                                       OrderActivitiesImpl orderActivities,
+                                       ShadowOrderActivitiesImpl shadowActivities) {
         workerFactory = WorkerFactory.newInstance(workflowClient);
+
+        boolean shadowMode = properties.isShadowMode();
+        OrderActivities activities = shadowMode ? shadowActivities : orderActivities;
+        String mode = shadowMode ? "SHADOW" : "LIVE";
 
         Worker orderSagaWorker = workerFactory.newWorker(properties.getTaskQueues().getOrderSaga());
         orderSagaWorker.registerWorkflowImplementationTypes(OrderFulfillmentWorkflowImpl.class);
-        orderSagaWorker.registerActivitiesImplementations(orderActivities);
+        orderSagaWorker.registerActivitiesImplementations(activities);
 
         workerFactory.start();
-        log.info("Temporal Worker 시작 완료: taskQueue={}", properties.getTaskQueues().getOrderSaga());
+        log.info("Temporal Worker 시작 완료: taskQueue={}, mode={}", properties.getTaskQueues().getOrderSaga(), mode);
 
         return workerFactory;
     }
