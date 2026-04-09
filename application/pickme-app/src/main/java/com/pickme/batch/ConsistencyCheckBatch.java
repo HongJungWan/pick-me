@@ -2,6 +2,7 @@ package com.pickme.batch;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -20,11 +21,20 @@ public class ConsistencyCheckBatch {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @Value("${pickme.temporal.enabled:false}")
+    private boolean temporalEnabled;
+
     @Scheduled(cron = "0 0 3 * * *")
     public void checkConsistency() {
         log.info("=== 정합성 검증 배치 시작 ===");
 
-        checkZombieOrders();
+        if (temporalEnabled) {
+            log.info("좀비 주문 검증 스킵 — Temporal 워크플로우 타임아웃이 대체");
+        } else {
+            checkZombieOrders();
+        }
+
+        // 주문-결제 정합성 검증은 Temporal 활성화와 무관하게 안전망으로 유지
         checkOrderPaymentConsistency();
 
         log.info("=== 정합성 검증 배치 완료 ===");

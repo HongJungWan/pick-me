@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.inventory.application.InventoryEventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -21,6 +22,12 @@ public class InventoryEventConsumer {
     private final InventoryEventHandler eventHandler;
     private final ObjectMapper objectMapper;
 
+    @Value("${pickme.temporal.enabled:false}")
+    private boolean temporalEnabled;
+
+    /**
+     * 상품 등록 시 Stock 생성 — 사가와 무관, Temporal 활성화 여부와 상관없이 항상 동작.
+     */
     @KafkaListener(topics = "pickme.product.events", groupId = "inventory-consumer")
     public void consumeProductEvents(String message, Acknowledgment ack) {
         try {
@@ -41,9 +48,17 @@ public class InventoryEventConsumer {
         }
     }
 
+    /**
+     * 주문 사가 관련 재고 처리 — Temporal 활성화 시 워크플로우 Activity가 대체하므로 스킵.
+     */
     @KafkaListener(topics = "pickme.order.events", groupId = "inventory-saga-consumer")
     public void consumeOrderEvents(String message, Acknowledgment ack) {
         try {
+            if (temporalEnabled) {
+                ack.acknowledge();
+                return;
+            }
+
             JsonNode root = objectMapper.readTree(message);
             String eventType = root.path("eventType").asText();
             UUID eventId = UUID.fromString(root.path("eventId").asText());

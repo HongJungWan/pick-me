@@ -12,10 +12,14 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+/**
+ * Choreography 기반 사가 소비자.
+ * Temporal 활성화 시 비활성화된다 — 워크플로우가 사가 오케스트레이션을 대체.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "spring.kafka.bootstrap-servers")
+@ConditionalOnProperty(name = "pickme.temporal.enabled", havingValue = "false", matchIfMissing = true)
 public class OrderSagaConsumer {
 
     private final OrderEventHandler orderEventHandler;

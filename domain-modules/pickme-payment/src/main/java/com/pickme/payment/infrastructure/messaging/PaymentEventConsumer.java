@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.payment.application.PaymentEventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -21,6 +22,9 @@ public class PaymentEventConsumer {
     private final PaymentEventHandler paymentEventHandler;
     private final ObjectMapper objectMapper;
 
+    @Value("${pickme.temporal.enabled:false}")
+    private boolean temporalEnabled;
+
     @KafkaListener(topics = "pickme.order.events", groupId = "payment-consumer")
     public void consumeOrderEvents(String message, Acknowledgment ack) {
         try {
@@ -29,17 +33,25 @@ public class PaymentEventConsumer {
             UUID eventId = UUID.fromString(root.path("eventId").asText());
 
             switch (eventType) {
-                case "OrderPlacedEvent" -> paymentEventHandler.handleOrderPlaced(
-                        eventId,
-                        UUID.fromString(root.path("orderId").asText()),
-                        UUID.fromString(root.path("ordererId").asText()),
-                        root.path("totalAmount").asLong()
-                );
-                case "OrderRefundRequestedEvent" -> paymentEventHandler.handleOrderRefundRequested(
-                        eventId,
-                        UUID.fromString(root.path("orderId").asText()),
-                        root.path("refundAmount").asLong()
-                );
+                case "OrderPlacedEvent" -> {
+                    // Temporal 활성화 시 워크플로우 Activity가 결제 처리를 대체
+                    if (!temporalEnabled) {
+                        paymentEventHandler.handleOrderPlaced(
+                                eventId,
+                                UUID.fromString(root.path("orderId").asText()),
+                                UUID.fromString(root.path("ordererId").asText()),
+                                root.path("totalAmount").asLong()
+                        );
+                    }
+                }
+                case "OrderRefundRequestedEvent" -> {
+                    // 환불은 Phase 3 RefundWorkflow 전환까지 Kafka로 유지
+                    paymentEventHandler.handleOrderRefundRequested(
+                            eventId,
+                            UUID.fromString(root.path("orderId").asText()),
+                            root.path("refundAmount").asLong()
+                    );
+                }
                 default -> log.debug("무시된 Order 이벤트: {}", eventType);
             }
 
