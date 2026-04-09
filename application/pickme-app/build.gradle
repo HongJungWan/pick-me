@@ -4,6 +4,8 @@ plugins {
 
 dependencies {
     implementation project(':common:pickme-common')
+    implementation project(':common:pickme-orchestration-api')
+    implementation project(':application:pickme-orchestration')
     implementation project(':domain-modules:pickme-order')
     implementation project(':domain-modules:pickme-payment')
     implementation project(':domain-modules:pickme-product')

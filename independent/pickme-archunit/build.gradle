@@ -8,6 +8,8 @@ dependencies {
     testImplementation project(':domain-modules:pickme-partner')
     testImplementation project(':domain-modules:pickme-notification')
     testImplementation project(':domain-modules:pickme-settlement')
+    testImplementation project(':common:pickme-orchestration-api')
+    testImplementation project(':application:pickme-orchestration')
 
     testImplementation libs.archunit.junit5
     testImplementation libs.spring.boot.starter.web

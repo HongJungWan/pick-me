@@ -1,0 +1,11 @@
+dependencies {
+    implementation project(':common:pickme-orchestration-api')
+
+    implementation libs.temporal.sdk
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.micrometer.registry.prometheus
+
+    testImplementation libs.temporal.testing
+    testImplementation libs.spring.boot.starter.test
+}

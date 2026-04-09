@@ -1,0 +1,2 @@
+// 순수 Java 인터페이스 + DTO 모듈 — 외부 의존성 없음
+// 도메인 모듈과 orchestration 모듈 간의 Anti-Corruption Layer 역할

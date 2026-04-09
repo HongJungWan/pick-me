@@ -53,6 +53,23 @@ resilience4j:
 
 # 분산 락 / Rate Limiter
 pickme:
+  temporal:
+    enabled: false  # Phase 2에서 true로 변경
+    shadow-mode: false  # Phase 1에서 true로 변경
+    target: ${TEMPORAL_ADDRESS:localhost:7233}
+    namespace: default
+    task-queues:
+      order-saga: pickme-order-saga
+      payment-activity: pickme-payment-activity
+      inventory-activity: pickme-inventory-activity
+      settlement: pickme-settlement
+      partner: pickme-partner
+    workflow:
+      order-fulfillment:
+        execution-timeout: 30m
+        task-timeout: 30s
+      refund:
+        execution-timeout: 1h
   outbox:
     relay:
       enabled: true  # Debezium CDC 컷오버 시 false로 변경

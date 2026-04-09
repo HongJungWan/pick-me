@@ -19,6 +19,9 @@ resilience4j = "2.3.0"
 # Architecture Test
 archunit = "1.4.0"
 
+# Temporal
+temporal = "1.25.0"
+
 # Monitoring
 micrometer-tracing = "1.4.4"
 
@@ -64,6 +67,10 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 # Jackson
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+
+# Temporal
+temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
+temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
 
 # Architecture Test
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

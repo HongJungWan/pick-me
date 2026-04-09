@@ -23,7 +23,8 @@ class NamingConventionTest {
                     .that().resideInAPackage("..application..")
                     .and().areAnnotatedWith(org.springframework.stereotype.Service.class)
                     .should().haveSimpleNameEndingWith("Service")
-                    .orShould().haveSimpleNameEndingWith("EventHandler");
+                    .orShould().haveSimpleNameEndingWith("EventHandler")
+                    .orShould().haveSimpleNameEndingWith("CommandAdapter");
 
     @ArchTest
     static final ArchRule EventHandler는_EventHandler_접미사를_가져야_한다 =
