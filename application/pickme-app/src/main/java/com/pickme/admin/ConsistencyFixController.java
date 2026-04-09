@@ -1,4 +1,4 @@
-package com.pickme.batch;
+package com.pickme.admin;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

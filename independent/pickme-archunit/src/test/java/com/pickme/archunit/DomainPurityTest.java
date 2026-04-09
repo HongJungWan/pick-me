@@ -41,4 +41,5 @@ class DomainPurityTest {
                     .that().resideInAPackage("..domain..")
                     .should().dependOnClassesThat()
                     .resideInAnyPackage("jakarta.persistence..", "javax.persistence..");
+
 }
