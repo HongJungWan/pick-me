@@ -2,6 +2,7 @@ package com.pickme.orchestration.workflow;
 
 import com.pickme.orchestration.dto.OrderFulfillmentRequest;
 import com.pickme.orchestration.dto.OrderFulfillmentResult;
+import com.pickme.orchestration.dto.WorkflowStepStatus;
 import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;

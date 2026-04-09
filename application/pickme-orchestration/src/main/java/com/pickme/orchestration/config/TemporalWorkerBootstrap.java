@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Optional;
+
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "pickme.temporal.enabled", havingValue = "true")
@@ -24,11 +26,17 @@ public class TemporalWorkerBootstrap {
     public WorkerFactory workerFactory(WorkflowClient workflowClient,
                                        TemporalProperties properties,
                                        OrderActivitiesImpl orderActivities,
-                                       ShadowOrderActivitiesImpl shadowActivities) {
+                                       Optional<ShadowOrderActivitiesImpl> shadowActivities) {
         workerFactory = WorkerFactory.newInstance(workflowClient);
 
         boolean shadowMode = properties.isShadowMode();
-        OrderActivities activities = shadowMode ? shadowActivities : orderActivities;
+        OrderActivities activities;
+        if (shadowMode) {
+            activities = shadowActivities.orElseThrow(() ->
+                    new IllegalStateException("pickme.temporal.shadow-mode=true이나 ShadowOrderActivitiesImpl 빈이 없습니다"));
+        } else {
+            activities = orderActivities;
+        }
         String mode = shadowMode ? "SHADOW" : "LIVE";
 
         Worker orderSagaWorker = workerFactory.newWorker(properties.getTaskQueues().getOrderSaga());

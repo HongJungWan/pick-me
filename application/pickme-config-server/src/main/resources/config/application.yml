@@ -54,8 +54,8 @@ resilience4j:
 # 분산 락 / Rate Limiter
 pickme:
   temporal:
-    enabled: false  # Phase 2에서 true로 변경
-    shadow-mode: false  # Phase 1에서 true로 변경
+    enabled: ${TEMPORAL_ENABLED:false}
+    shadow-mode: ${TEMPORAL_SHADOW_MODE:false}
     target: ${TEMPORAL_ADDRESS:localhost:7233}
     namespace: default
     task-queues:

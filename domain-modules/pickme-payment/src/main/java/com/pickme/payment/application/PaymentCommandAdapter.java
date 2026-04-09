@@ -40,10 +40,14 @@ public class PaymentCommandAdapter implements PaymentCommandPort {
                 ("temporal-payment:" + orderId).getBytes(StandardCharsets.UTF_8));
 
         if (idempotencyFilter.isDuplicate(idempotencyKey)) {
-            log.info("중복 Activity 무시 (processPayment): orderId={}", orderId);
+            log.info("중복 Activity 감지 (processPayment): orderId={}", orderId);
             Payment existing = paymentRepository.findByOrderId(orderId).orElse(null);
-            if (existing != null && existing.getStatus() == PaymentStatus.COMPLETED) {
-                return PaymentResult.success(existing.getPaymentId().getValue());
+            if (existing != null) {
+                return switch (existing.getStatus()) {
+                    case COMPLETED -> PaymentResult.success(existing.getPaymentId().getValue());
+                    case REQUESTED, PROCESSING -> PaymentResult.success(existing.getPaymentId().getValue());
+                    default -> PaymentResult.failure("결제 실패 상태: " + existing.getStatus());
+                };
             }
             return PaymentResult.failure("중복 결제 시도이나 기존 결제를 찾을 수 없음");
         }

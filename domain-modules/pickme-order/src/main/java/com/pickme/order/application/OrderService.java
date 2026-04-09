@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,11 +49,13 @@ public class OrderService {
         eventPublisher.publishAll(order);
         businessMetrics.incrementOrderCreated();
 
-        // Temporal 워크플로우 시작 (Shadow/Live 모두 동일한 인터페이스)
-        // Shadow 모드: Kafka 코레오그래피가 실제 상태를 관리, 워크플로우는 dry-run 검증
-        // Live 모드: 워크플로우가 사가 오케스트레이션 담당
-        // Temporal 비활성화 시: NoOpWorkflowStarter가 호출을 무시
-        startWorkflow(saved, request);
+        // TX 커밋 후 워크플로우 시작 — 커밋 전 시작 시 주문 미존재 상태에서 Activity가 실행될 수 있음
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                startWorkflow(saved, request);
+            }
+        });
 
         return saved;
     }
@@ -91,7 +95,6 @@ public class OrderService {
                     "CREDIT_CARD"
             );
         } catch (Exception e) {
-            // 워크플로우 시작 실패가 주문 생성을 방해해서는 안 됨
             log.warn("Temporal 워크플로우 시작 실패 (주문 생성에는 영향 없음): orderId={}", order.getOrderId().getValue(), e);
         }
     }

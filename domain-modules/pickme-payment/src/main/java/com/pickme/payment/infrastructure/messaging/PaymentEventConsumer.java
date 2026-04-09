@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pickme.payment.application.PaymentEventHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
@@ -21,9 +21,7 @@ public class PaymentEventConsumer {
 
     private final PaymentEventHandler paymentEventHandler;
     private final ObjectMapper objectMapper;
-
-    @Value("${pickme.temporal.enabled:false}")
-    private boolean temporalEnabled;
+    private final Environment environment;
 
     @KafkaListener(topics = "pickme.order.events", groupId = "payment-consumer")
     public void consumeOrderEvents(String message, Acknowledgment ack) {
@@ -35,7 +33,7 @@ public class PaymentEventConsumer {
             switch (eventType) {
                 case "OrderPlacedEvent" -> {
                     // Temporal 활성화 시 워크플로우 Activity가 결제 처리를 대체
-                    if (!temporalEnabled) {
+                    if (!Boolean.parseBoolean(environment.getProperty("pickme.temporal.enabled", "false"))) {
                         paymentEventHandler.handleOrderPlaced(
                                 eventId,
                                 UUID.fromString(root.path("orderId").asText()),

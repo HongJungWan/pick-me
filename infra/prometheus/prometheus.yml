@@ -11,6 +11,8 @@ scrape_configs:
     static_configs:
       - targets: ['kafka-connect:9875']
 
-  - job_name: 'temporal-server'
-    static_configs:
-      - targets: ['temporal:8000']
+  # Temporal SDK 클라이언트 메트릭은 pickme-app의 /actuator/prometheus에서 노출됨 (TemporalMetricsConfig)
+  # Temporal Server 자체 메트릭이 필요한 경우 별도 포트 설정 후 활성화
+  # - job_name: 'temporal-server'
+  #   static_configs:
+  #     - targets: ['temporal:9090']

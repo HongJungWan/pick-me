@@ -5,6 +5,7 @@ import com.pickme.orchestration.dto.OrderFulfillmentRequest;
 import com.pickme.orchestration.dto.OrderLineItem;
 import com.pickme.orchestration.port.WorkflowStarter;
 import com.pickme.orchestration.workflow.OrderFulfillmentWorkflow;
+import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class TemporalWorkflowStarter implements WorkflowStarter {
                 .setWorkflowId("order-fulfillment-" + orderId)
                 .setTaskQueue(properties.getTaskQueues().getOrderSaga())
                 .setWorkflowExecutionTimeout(Duration.ofMinutes(30))
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
                 .build();
 
         OrderFulfillmentWorkflow workflow = workflowClient.newWorkflowStub(

@@ -24,11 +24,18 @@ public class TemporalAutoConfiguration {
 
     @Bean(destroyMethod = "shutdown")
     public WorkflowServiceStubs workflowServiceStubs() {
-        WorkflowServiceStubsOptions options = WorkflowServiceStubsOptions.newBuilder()
-                .setTarget(properties.getTarget())
-                .build();
-        log.info("Temporal Server 연결: target={}", properties.getTarget());
-        return WorkflowServiceStubs.newServiceStubs(options);
+        try {
+            WorkflowServiceStubsOptions options = WorkflowServiceStubsOptions.newBuilder()
+                    .setTarget(properties.getTarget())
+                    .build();
+            WorkflowServiceStubs stubs = WorkflowServiceStubs.newServiceStubs(options);
+            log.info("Temporal Server 연결 성공: target={}", properties.getTarget());
+            return stubs;
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Temporal Server 연결 실패 (target=" + properties.getTarget() + "). "
+                    + "pickme.temporal.enabled=false로 설정하거나 Temporal Server를 시작하세요.", e);
+        }
     }
 
     @Bean

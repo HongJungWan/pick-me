@@ -5,11 +5,11 @@ import com.pickme.orchestration.dto.OrderFulfillmentRequest;
 import com.pickme.orchestration.dto.OrderFulfillmentResult;
 import com.pickme.orchestration.dto.PaymentResult;
 import com.pickme.orchestration.dto.ReserveResult;
+import com.pickme.orchestration.dto.WorkflowStepStatus;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.failure.ActivityFailure;
 import io.temporal.workflow.Workflow;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 
@@ -27,61 +27,61 @@ public class OrderFulfillmentWorkflowImpl implements OrderFulfillmentWorkflow {
                     .build()
     );
 
-    private String status = "STARTED";
+    private WorkflowStepStatus status = WorkflowStepStatus.STARTED;
 
     @Override
     public OrderFulfillmentResult execute(OrderFulfillmentRequest request) {
         // Step 1: 재고 예약
-        status = "RESERVING_INVENTORY";
+        status = WorkflowStepStatus.RESERVING_INVENTORY;
         ReserveResult reserveResult;
         try {
             reserveResult = activities.reserveInventory(request.orderId(), request.orderLines());
         } catch (ActivityFailure e) {
-            status = "INVENTORY_FAILED";
+            status = WorkflowStepStatus.INVENTORY_FAILED;
             safeCancel(request, "재고 예약 실패");
             return OrderFulfillmentResult.failed(request.orderId(), "INVENTORY_FAILURE", e.getMessage());
         }
 
         if (!reserveResult.success()) {
-            status = "INVENTORY_SHORTAGE";
+            status = WorkflowStepStatus.INVENTORY_SHORTAGE;
             safeCancel(request, reserveResult.failureReason());
             return OrderFulfillmentResult.failed(request.orderId(), "INVENTORY_SHORTAGE", reserveResult.failureReason());
         }
 
         // Step 2: 결제 처리 (실패 시 재고 보상)
-        status = "PROCESSING_PAYMENT";
+        status = WorkflowStepStatus.PROCESSING_PAYMENT;
         PaymentResult paymentResult;
         try {
             paymentResult = activities.processPayment(
                     request.orderId(), request.ordererId(),
                     request.totalAmount(), request.paymentMethod());
         } catch (ActivityFailure e) {
-            status = "PAYMENT_FAILED";
+            status = WorkflowStepStatus.PAYMENT_FAILED;
             safeRestoreAndCancel(request, "결제 처리 실패");
             return OrderFulfillmentResult.failed(request.orderId(), "PAYMENT_FAILURE", e.getMessage());
         }
 
         if (!paymentResult.success()) {
-            status = "PAYMENT_DECLINED";
+            status = WorkflowStepStatus.PAYMENT_DECLINED;
             safeRestoreAndCancel(request, "결제 거절: " + paymentResult.failureReason());
             return OrderFulfillmentResult.failed(request.orderId(), "PAYMENT_DECLINED", paymentResult.failureReason());
         }
 
         // Step 3: 주문 확정
-        status = "CONFIRMING_ORDER";
+        status = WorkflowStepStatus.CONFIRMING_ORDER;
         activities.confirmOrder(request.orderId());
 
         // Step 4: 재고 확정
-        status = "CONFIRMING_INVENTORY";
+        status = WorkflowStepStatus.CONFIRMING_INVENTORY;
         activities.confirmInventory(request.orderId(), request.orderLines());
 
-        status = "COMPLETED";
+        status = WorkflowStepStatus.COMPLETED;
         return OrderFulfillmentResult.success(request.orderId(), paymentResult.paymentId());
     }
 
     @Override
     public String getStatus() {
-        return status;
+        return status.name();
     }
 
     private void safeCancel(OrderFulfillmentRequest request, String reason) {
