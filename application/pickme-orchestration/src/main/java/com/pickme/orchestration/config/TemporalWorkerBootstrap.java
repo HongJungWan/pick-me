@@ -2,8 +2,14 @@ package com.pickme.orchestration.config;
 
 import com.pickme.orchestration.activity.OrderActivities;
 import com.pickme.orchestration.activity.OrderActivitiesImpl;
+import com.pickme.orchestration.activity.PartnerOnboardingActivitiesImpl;
+import com.pickme.orchestration.activity.RefundActivitiesImpl;
+import com.pickme.orchestration.activity.SettlementActivitiesImpl;
 import com.pickme.orchestration.activity.ShadowOrderActivitiesImpl;
 import com.pickme.orchestration.workflow.OrderFulfillmentWorkflowImpl;
+import com.pickme.orchestration.workflow.OrderRefundWorkflowImpl;
+import com.pickme.orchestration.workflow.PartnerOnboardingWorkflowImpl;
+import com.pickme.orchestration.workflow.SettlementReconciliationWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
@@ -26,25 +32,42 @@ public class TemporalWorkerBootstrap {
     public WorkerFactory workerFactory(WorkflowClient workflowClient,
                                        TemporalProperties properties,
                                        OrderActivitiesImpl orderActivities,
-                                       Optional<ShadowOrderActivitiesImpl> shadowActivities) {
+                                       Optional<ShadowOrderActivitiesImpl> shadowActivities,
+                                       RefundActivitiesImpl refundActivities,
+                                       SettlementActivitiesImpl settlementActivities,
+                                       PartnerOnboardingActivitiesImpl partnerActivities) {
         workerFactory = WorkerFactory.newInstance(workflowClient);
 
+        // 주문 이행 사가 Worker
         boolean shadowMode = properties.isShadowMode();
-        OrderActivities activities;
+        OrderActivities orderSagaActivities;
         if (shadowMode) {
-            activities = shadowActivities.orElseThrow(() ->
+            orderSagaActivities = shadowActivities.orElseThrow(() ->
                     new IllegalStateException("pickme.temporal.shadow-mode=true이나 ShadowOrderActivitiesImpl 빈이 없습니다"));
         } else {
-            activities = orderActivities;
+            orderSagaActivities = orderActivities;
         }
         String mode = shadowMode ? "SHADOW" : "LIVE";
 
         Worker orderSagaWorker = workerFactory.newWorker(properties.getTaskQueues().getOrderSaga());
-        orderSagaWorker.registerWorkflowImplementationTypes(OrderFulfillmentWorkflowImpl.class);
-        orderSagaWorker.registerActivitiesImplementations(activities);
+        orderSagaWorker.registerWorkflowImplementationTypes(OrderFulfillmentWorkflowImpl.class, OrderRefundWorkflowImpl.class);
+        orderSagaWorker.registerActivitiesImplementations(orderSagaActivities, refundActivities);
+
+        // 정산 Worker
+        Worker settlementWorker = workerFactory.newWorker(properties.getTaskQueues().getSettlement());
+        settlementWorker.registerWorkflowImplementationTypes(SettlementReconciliationWorkflowImpl.class);
+        settlementWorker.registerActivitiesImplementations(settlementActivities);
+
+        // 파트너 온보딩 Worker
+        Worker partnerWorker = workerFactory.newWorker(properties.getTaskQueues().getPartner());
+        partnerWorker.registerWorkflowImplementationTypes(PartnerOnboardingWorkflowImpl.class);
+        partnerWorker.registerActivitiesImplementations(partnerActivities);
 
         workerFactory.start();
-        log.info("Temporal Worker 시작 완료: taskQueue={}, mode={}", properties.getTaskQueues().getOrderSaga(), mode);
+        log.info("Temporal Worker 시작 완료: orderSaga={} ({}), settlement={}, partner={}",
+                properties.getTaskQueues().getOrderSaga(), mode,
+                properties.getTaskQueues().getSettlement(),
+                properties.getTaskQueues().getPartner());
 
         return workerFactory;
     }

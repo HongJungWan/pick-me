@@ -2,6 +2,8 @@ dependencies {
     implementation project(':common:pickme-orchestration-api')
 
     implementation libs.temporal.sdk
+    // Temporal OpenTracing 연동은 Micrometer Brave 브릿지를 통해 자동 활성화됨
+    // (temporal-opentracing은 OpenTracing API 전용이므로 Micrometer 환경에서는 SDK 내장 메트릭 사용)
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.actuator
     implementation libs.micrometer.registry.prometheus

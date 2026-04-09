@@ -70,4 +70,48 @@ public class OrderCommandAdapter implements OrderCommandPort {
         idempotencyFilter.markProcessed(idempotencyKey, "TemporalCancelOrder");
         log.info("[CommandPort] 주문 취소: orderId={}, reason={}", orderId, reason);
     }
+
+    @Transactional
+    @Override
+    public void requestRefund(UUID orderId, String reason) {
+        UUID idempotencyKey = UUID.nameUUIDFromBytes(
+                ("temporal-request-refund:" + orderId).getBytes(StandardCharsets.UTF_8));
+
+        if (idempotencyFilter.isDuplicate(idempotencyKey)) {
+            log.info("중복 Activity 무시 (requestRefund): orderId={}", orderId);
+            return;
+        }
+
+        Order order = orderRepository.findById(OrderId.of(orderId))
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다: " + orderId));
+
+        order.requestRefund(reason);
+        orderRepository.save(order);
+        eventPublisher.publishAll(order);
+
+        idempotencyFilter.markProcessed(idempotencyKey, "TemporalRequestRefund");
+        log.info("[CommandPort] 환불 요청: orderId={}, reason={}", orderId, reason);
+    }
+
+    @Transactional
+    @Override
+    public void completeRefund(UUID orderId) {
+        UUID idempotencyKey = UUID.nameUUIDFromBytes(
+                ("temporal-complete-refund:" + orderId).getBytes(StandardCharsets.UTF_8));
+
+        if (idempotencyFilter.isDuplicate(idempotencyKey)) {
+            log.info("중복 Activity 무시 (completeRefund): orderId={}", orderId);
+            return;
+        }
+
+        Order order = orderRepository.findById(OrderId.of(orderId))
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다: " + orderId));
+
+        order.completeRefund();
+        orderRepository.save(order);
+        eventPublisher.publishAll(order);
+
+        idempotencyFilter.markProcessed(idempotencyKey, "TemporalCompleteRefund");
+        log.info("[CommandPort] 환불 완료: orderId={}", orderId);
+    }
 }

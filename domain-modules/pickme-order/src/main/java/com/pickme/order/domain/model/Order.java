@@ -98,6 +98,10 @@ public class Order implements com.pickme.common.event.DomainEventProvider {
                 orderId.getValue(), totalAmount.getAmount(), reason));
     }
 
+    public void completeRefund() {
+        changeStatus(OrderStatus.REFUNDED);
+    }
+
     public void startPreparing() {
         changeStatus(OrderStatus.PREPARING);
     }

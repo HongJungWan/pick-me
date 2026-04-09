@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':common:pickme-common')
+    implementation project(':common:pickme-orchestration-api')
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.data.jpa
     implementation libs.spring.boot.starter.validation

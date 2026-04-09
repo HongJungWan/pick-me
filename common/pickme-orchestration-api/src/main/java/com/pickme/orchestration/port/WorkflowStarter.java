@@ -1,7 +1,9 @@
 package com.pickme.orchestration.port;
 
 import com.pickme.orchestration.dto.OrderLineItem;
+import com.pickme.orchestration.dto.PartnerOnboardingRequest;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,5 +16,9 @@ public interface WorkflowStarter {
     void startOrderFulfillment(UUID orderId, UUID ordererId,
                                List<OrderLineItem> orderLines, long totalAmount, String paymentMethod);
 
-    void startRefund(UUID orderId, String reason, long refundAmount);
+    void startRefund(UUID orderId, String reason, long refundAmount, List<OrderLineItem> orderLines);
+
+    void startSettlementReconciliation(LocalDate date);
+
+    void startPartnerOnboarding(PartnerOnboardingRequest request);
 }

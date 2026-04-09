@@ -71,6 +71,7 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 # Temporal
 temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
 temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
+temporal-opentracing = { module = "io.temporal:temporal-opentracing", version.ref = "temporal" }
 
 # Architecture Test
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }

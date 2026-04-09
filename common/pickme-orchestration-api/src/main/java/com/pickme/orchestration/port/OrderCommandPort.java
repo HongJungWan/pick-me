@@ -11,4 +11,8 @@ public interface OrderCommandPort {
     void confirmOrder(UUID orderId);
 
     void cancelOrder(UUID orderId, String reason);
+
+    void requestRefund(UUID orderId, String reason);
+
+    void completeRefund(UUID orderId);
 }

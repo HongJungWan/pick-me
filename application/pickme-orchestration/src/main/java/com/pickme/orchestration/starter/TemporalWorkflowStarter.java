@@ -3,8 +3,13 @@ package com.pickme.orchestration.starter;
 import com.pickme.orchestration.config.TemporalProperties;
 import com.pickme.orchestration.dto.OrderFulfillmentRequest;
 import com.pickme.orchestration.dto.OrderLineItem;
+import com.pickme.orchestration.dto.PartnerOnboardingRequest;
+import com.pickme.orchestration.dto.RefundRequest;
 import com.pickme.orchestration.port.WorkflowStarter;
 import com.pickme.orchestration.workflow.OrderFulfillmentWorkflow;
+import com.pickme.orchestration.workflow.OrderRefundWorkflow;
+import com.pickme.orchestration.workflow.PartnerOnboardingWorkflow;
+import com.pickme.orchestration.workflow.SettlementReconciliationWorkflow;
 import io.temporal.api.enums.v1.WorkflowIdReusePolicy;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
@@ -14,6 +19,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,12 +48,58 @@ public class TemporalWorkflowStarter implements WorkflowStarter {
         WorkflowClient.start(workflow::execute,
                 new OrderFulfillmentRequest(orderId, ordererId, orderLines, totalAmount, paymentMethod));
 
-        log.info("주문 이행 워크플로우 시작: orderId={}, workflowId=order-fulfillment-{}", orderId, orderId);
+        log.info("주문 이행 워크플로우 시작: orderId={}", orderId);
     }
 
     @Override
-    public void startRefund(UUID orderId, String reason, long refundAmount) {
-        // Phase 3에서 구현 예정
-        log.warn("환불 워크플로우 미구현: orderId={}", orderId);
+    public void startRefund(UUID orderId, String reason, long refundAmount, List<OrderLineItem> orderLines) {
+        WorkflowOptions options = WorkflowOptions.newBuilder()
+                .setWorkflowId("order-refund-" + orderId)
+                .setTaskQueue(properties.getTaskQueues().getOrderSaga())
+                .setWorkflowExecutionTimeout(Duration.ofHours(1))
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                .build();
+
+        OrderRefundWorkflow workflow = workflowClient.newWorkflowStub(
+                OrderRefundWorkflow.class, options);
+
+        WorkflowClient.start(workflow::execute,
+                new RefundRequest(orderId, null, reason, refundAmount, orderLines));
+
+        log.info("환불 워크플로우 시작: orderId={}", orderId);
+    }
+
+    @Override
+    public void startSettlementReconciliation(LocalDate date) {
+        WorkflowOptions options = WorkflowOptions.newBuilder()
+                .setWorkflowId("settlement-reconciliation-" + date)
+                .setTaskQueue(properties.getTaskQueues().getSettlement())
+                .setWorkflowExecutionTimeout(Duration.ofHours(2))
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                .build();
+
+        SettlementReconciliationWorkflow workflow = workflowClient.newWorkflowStub(
+                SettlementReconciliationWorkflow.class, options);
+
+        WorkflowClient.start(workflow::execute, date);
+
+        log.info("정산 Reconciliation 워크플로우 시작: date={}", date);
+    }
+
+    @Override
+    public void startPartnerOnboarding(PartnerOnboardingRequest request) {
+        WorkflowOptions options = WorkflowOptions.newBuilder()
+                .setWorkflowId("partner-onboarding-" + request.registrationNumber())
+                .setTaskQueue(properties.getTaskQueues().getPartner())
+                .setWorkflowExecutionTimeout(Duration.ofDays(7))
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_REJECT_DUPLICATE)
+                .build();
+
+        PartnerOnboardingWorkflow workflow = workflowClient.newWorkflowStub(
+                PartnerOnboardingWorkflow.class, options);
+
+        WorkflowClient.start(workflow::execute, request);
+
+        log.info("파트너 온보딩 워크플로우 시작: company={}", request.companyName());
     }
 }
