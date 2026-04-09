@@ -1,6 +1,6 @@
 # pickme-order (Order Context)
 
-> 주문 생성, 상태 관리, Saga 이벤트 오케스트레이션 — Choreography 기반
+> 주문 생성, 상태 관리, Saga 오케스트레이션 — Temporal Workflow 기반 (Kafka Choreography 폴백 지원)
 
 ## Aggregate Root — `Order`
 
@@ -10,6 +10,7 @@
 | `completePayment()` | 결제 완료 → 주문 확정 | OrderConfirmedEvent |
 | `cancel(reason)` | 주문 취소 (보상 트랜잭션) | OrderCancelledEvent |
 | `requestRefund(reason)` | 환불 요청 | OrderRefundRequestedEvent |
+| `completeRefund()` | 환불 완료 상태 전이 | - |
 | `startPreparing()` | 상품 준비 시작 | - |
 | `ship()` | 발송 처리 | - |
 | `deliver()` | 배송 완료 | - |
@@ -71,13 +72,35 @@ PLACED → PAYMENT_PENDING → PAID → PREPARING → SHIPPED → DELIVERED
 ```
 pickme-order/
 ├── api/              OrderController, Request/Response DTO
-├── application/      OrderService, OrderEventHandler, OrderSnapshotEventHandler
+├── application/      OrderService, OrderEventHandler, OrderSnapshotEventHandler, OrderCommandAdapter
 ├── domain/
 │   ├── model/        Order, OrderId, OrderLine, Money, ShippingInfo, Address, OrderStatus
 │   ├── event/        OrderPlacedEvent, OrderConfirmedEvent, OrderCancelledEvent, OrderRefundRequestedEvent
 │   └── repository/   OrderRepository (Interface)
 └── infrastructure/
     ├── persistence/  JPA Entity, Mapper, Repository 구현체
-    ├── messaging/    OrderSagaConsumer, OrderSnapshotConsumer
+    ├── messaging/    OrderSagaConsumer (Temporal 시 비활성화), OrderSnapshotConsumer
     └── snapshot/     ProductSnapshot, MemberSnapshot (CQRS Read Model)
 ```
+
+## Temporal 연동
+
+### OrderCommandAdapter (`OrderCommandPort` 구현)
+
+Temporal Activity에서 호출되는 포트 구현체. 기존 도메인 로직을 재사용하며 `IdempotencyFilter`로 Activity 재시도 안전성 보장.
+
+| 메서드 | 설명 | 멱등성 키 |
+|--------|------|----------|
+| `confirmOrder(orderId)` | 결제 완료 → 주문 확정 | `temporal-confirm:{orderId}` |
+| `cancelOrder(orderId, reason)` | 주문 취소 (보상) | `temporal-cancel:{orderId}` |
+| `requestRefund(orderId, reason)` | 환불 요청 | `temporal-request-refund:{orderId}` |
+| `completeRefund(orderId)` | 환불 완료 | `temporal-complete-refund:{orderId}` |
+
+### OrderService 워크플로우 시작
+
+`OrderService.createOrder()`는 TX 커밋 후 `TransactionSynchronization.afterCommit()`으로 워크플로우를 시작한다. 워크플로우 시작 실패 시 주문 생성에는 영향 없음 (try-catch 격리).
+
+### Feature Flag
+
+- `pickme.temporal.enabled=true` → `OrderSagaConsumer` 빈 미등록, Temporal Workflow가 사가 오케스트레이션
+- `pickme.temporal.enabled=false` → `OrderSagaConsumer` 활성화, Kafka Choreography 복원

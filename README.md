@@ -73,6 +73,7 @@
 | Message Broker | Apache Kafka (KRaft) |
 | Resilience | Resilience4j (Circuit Breaker) |
 | Architecture Test | ArchUnit |
+| Workflow Orchestration | Temporal 1.25.0 (Saga, 보상 트랜잭션) |
 | CDC | Debezium 2.5 (PostgreSQL WAL → Kafka) |
 | Monitoring | Micrometer + Prometheus + Grafana |
 | Logging | Promtail + Loki |
@@ -119,6 +120,7 @@ pick-me/
 | 모듈 | 역할 | README |
 |------|------|--------|
 | **pickme-app** | Spring Boot 실행, Flyway, 프로필 | [README](application/pickme-app/README.md) |
+| **pickme-orchestration** | Temporal 워크플로우 4종, Activity, Worker, 모니터링 | [README](application/pickme-orchestration/README.md) |
 | **pickme-gateway** | API Gateway, JWT 필터, 라우팅 | [README](application/pickme-gateway/README.md) |
 | **pickme-config-server** | Spring Cloud Config Server, 설정 중앙 관리 | [README](application/pickme-config-server/README.md) |
 | **pickme-discovery** | Eureka Server, 서비스 디스커버리 | [README](application/pickme-discovery/README.md) |
@@ -130,6 +132,7 @@ pick-me/
 | 모듈 | 역할 | README |
 |------|------|--------|
 | **pickme-common** | Outbox, 멱등성, 분산 락, Rate Limiter, 이벤트 공통 | [README](common/pickme-common/README.md) |
+| **pickme-orchestration-api** | Temporal CommandPort 인터페이스, 오케스트레이션 DTO (순수 Java) | [README](common/pickme-orchestration-api/README.md) |
 
 ### 독립 모듈 (`independent/`)
 
@@ -141,25 +144,35 @@ pick-me/
 
 ---
 
-## Saga 이벤트 흐름 (주문 플로우)
+## Saga 오케스트레이션 (주문 플로우)
+
+**Temporal Orchestration** (기본 모드: `pickme.temporal.enabled=true`)
 
 ```
-정상 플로우:
+OrderService.createOrder()
+  ├─ [TX 내] Order 저장 + OrderPlacedEvent → Outbox → Kafka (알림/정산 브로드캐스트)
+  └─ [TX 커밋 후] Temporal OrderFulfillmentWorkflow 시작
+       │
+       ├─ Step 1: reserveInventory()    ← InventoryCommandPort
+       ├─ Step 2: processPayment()      ← PaymentCommandPort (60s 타임아웃)
+       ├─ Step 3: confirmOrder()        ← OrderCommandPort
+       └─ Step 4: confirmInventory()    ← InventoryCommandPort
+       
+  보상 (자동):
+    Step 2 실패 → restoreInventory + cancelOrder
+    Step 3 실패 → refund + restoreInventory + cancelOrder
+```
+
+**Kafka Choreography** (폴백 모드: `pickme.temporal.enabled=false`)
+
+```
   Order.place() → OrderPlacedEvent
     → [Inventory] stock.reserve() → InventoryReservedEvent
     → [Payment] processNewPayment() → PaymentCompletedEvent
       → [Order] order.completePayment() → OrderConfirmedEvent
-        → [Inventory] stock.confirm()
-
-보상 플로우 (결제 실패):
-  PaymentFailedEvent
-    → [Order] order.cancel("결제 실패") → OrderCancelledEvent
-      → [Inventory] stock.cancel() → InventoryRestoredEvent
-
-보상 플로우 (재고 부족):
-  InventoryShortageEvent
-    → [Order] order.cancel("재고 부족")
 ```
+
+Feature Flag 기반 Strangler Fig 패턴으로 Kafka↔Temporal 간 무중단 전환이 가능하다.
 
 ---
 
@@ -191,6 +204,34 @@ After (Debezium CDC):
 
 ---
 
+## Temporal 마이그레이션: Kafka Choreography → Temporal Orchestration
+
+Saga 오케스트레이션을 Kafka 이벤트 코레오그래피에서 Temporal 워크플로우로 전환했습니다.
+
+```
+Before (Choreography):
+  OrderPlacedEvent → 6개 Kafka Consumer에 사가 로직 분산
+  한계: 상태 비가시성, 좀비 주문, 타임아웃 없음, 보상 순서 미보장
+
+After (Temporal Orchestration):
+  OrderFulfillmentWorkflow → 4단계 명시적 사가 + 자동 보상
+  개선: 단일 워크플로우에 로직 응집, 30분 타임아웃, 관리자 취소 Signal
+```
+
+| 항목 | Before (Kafka) | After (Temporal) |
+|------|---------------|-----------------|
+| 사가 상태 조회 | 여러 서비스 로그 추적 | Temporal UI + REST API |
+| 타임아웃 | 없음 (3AM 배치 탐지) | 워크플로우 30분 자동 만료 |
+| 보상 트랜잭션 | 이벤트 기반 암묵적 | 코드 기반 명시적 |
+| 관리자 개입 | 불가 | @SignalMethod cancelByAdmin |
+| Kafka 역할 | 사가 + 브로드캐스트 | 브로드캐스트만 (알림, 정산, CQRS) |
+
+**전환 전략**: Feature Flag(`pickme.temporal.enabled`) 기반 Strangler Fig 패턴 — Shadow Mode → Live → Kafka 소비자 삭제
+
+> 상세 기술 아티클: [Temporal 마이그레이션 여정](tech-blog/temporal.md)
+
+---
+
 ## 인프라 구성
 
 ```
@@ -210,6 +251,9 @@ After (Debezium CDC):
 │         └────────────────────────────── │ Kafka Connect   │      │
 │                                         │ (Debezium 2.5)  │      │
 │                                         └─────────────────┘      │
+│                                                                   │
+│  Temporal 1.25.0 (워크플로우 오케스트레이션)                        │
+│  Temporal UI (워크플로우 가시성)                                   │
 │                                                                   │
 │  Prometheus ──▶ Grafana        Promtail ──▶ Loki                │
 │  Zipkin (분산 트레이싱)         Kafka UI (토픽 모니터링)            │
@@ -248,6 +292,7 @@ docker compose -f docker-compose.msa.yml up -d --build
 | API Gateway | http://localhost:8060 |
 | Config Server | http://localhost:8888 |
 | Eureka Dashboard | http://localhost:8761 |
+| Temporal UI | http://localhost:8233 |
 | Kafka UI | http://localhost:8089 |
 | Kafka Connect (Debezium) | http://localhost:8083 |
 | Zipkin | http://localhost:9411 |

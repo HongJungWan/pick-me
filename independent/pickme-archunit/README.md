@@ -40,7 +40,25 @@ domain 패키지에서 Spring, JPA 프레임워크를 import하지 못하도록 
 | 어노테이션 | 허용 접미사 |
 |-----------|-----------|
 | `@RestController` | `*Controller` |
-| `@Service` | `*Service` 또는 `*EventHandler` |
+| `@Service` | `*Service`, `*EventHandler`, `*CommandAdapter` |
+
+### TemporalIsolationTest — Temporal SDK 격리
+
+Temporal SDK(`io.temporal.*`)가 `orchestration` 모듈 외부로 누출되지 않도록 강제한다.
+
+```java
+// orchestration 패키지 외부에서 io.temporal.* 참조 금지
+noClasses().that().resideOutsideOfPackage("..orchestration..")
+    .should().dependOnClassesThat().resideInAPackage("io.temporal..");
+
+// 도메인 모듈은 orchestration 구현 세부사항에 의존 금지
+noClasses().that().resideInAnyPackage("..order.domain..", "..payment.domain..", ...)
+    .should().dependOnClassesThat().resideInAPackage("..orchestration..");
+```
+
+이 규칙이 보장하는 것:
+- Temporal SDK 의존성이 `pickme-orchestration` 모듈에만 격리
+- 도메인 모듈은 `pickme-orchestration-api`의 순수 Java 인터페이스(CommandPort)만 참조 가능
 
 ## 실행
 

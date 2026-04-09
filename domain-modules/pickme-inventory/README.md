@@ -48,13 +48,23 @@
 ```
 pickme-inventory/
 ├── api/              InventoryController, Request/Response DTO
-├── application/      InventoryService, InventoryEventHandler
+├── application/      InventoryService, InventoryEventHandler, InventoryCommandAdapter
 ├── domain/
 │   ├── model/        Stock, StockId, Quantity
 │   ├── event/        InventoryReservedEvent, InventoryShortageEvent, InventoryRestoredEvent, StockDepletedEvent
 │   └── repository/   StockRepository (Interface)
 └── infrastructure/
     ├── persistence/  JPA Entity, Mapper, Repository 구현체
-    ├── messaging/    InventorySagaConsumer
+    ├── messaging/    InventoryEventConsumer (사가 이벤트는 Temporal 시 스킵, ProductRegisteredEvent는 항상 활성)
     └── redis/        StockRedisService (Lua Script 원자적 차감 + DB 동기화)
 ```
+
+## Temporal 연동
+
+`InventoryCommandAdapter`가 `InventoryCommandPort`를 구현하여 Temporal Activity에서 호출된다.
+
+| 메서드 | 분산 락 | 멱등성 키 |
+|--------|--------|----------|
+| `reserveInventory(orderId, items)` | `@DistributedLock(key=orderId)` | `temporal-reserve:{orderId}` |
+| `confirmInventory(orderId, items)` | - | `temporal-confirm-inv:{orderId}` |
+| `restoreInventory(orderId, items)` | `@DistributedLock(key=orderId)` | `temporal-restore:{orderId}` |

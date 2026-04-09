@@ -47,7 +47,7 @@
 ```
 pickme-partner/
 ├── api/              PartnerController, Request/Response DTO
-├── application/      PartnerService
+├── application/      PartnerService, PartnerCommandAdapter
 ├── domain/
 │   ├── model/        Partner, PartnerId, BusinessInfo, ContractInfo, PartnerStatus
 │   ├── event/        PartnerApprovedEvent, PartnerSuspendedEvent
@@ -56,3 +56,15 @@ pickme-partner/
     ├── persistence/  JPA Entity, Mapper, Repository 구현체
     └── external/     DeliveryGateway, NotificationGateway (ACL)
 ```
+
+## Temporal 연동
+
+`PartnerCommandAdapter`가 `PartnerCommandPort`를 구현하여 `PartnerOnboardingWorkflow` Activity에서 호출된다.
+
+| 메서드 | 설명 | 멱등성 키 |
+|--------|------|----------|
+| `registerPartner(...)` | 파트너 등록 (PENDING) | `temporal-register-partner:{registrationNumber}` |
+| `approvePartner(partnerId)` | 파트너 승인 (APPROVED) | `temporal-approve-partner:{partnerId}` |
+| `rejectPartner(partnerId, reason)` | 파트너 거절 (SUSPENDED) | `temporal-reject-partner:{partnerId}` |
+
+`PartnerOnboardingWorkflow`는 `@SignalMethod approveByAdmin/rejectByAdmin`으로 관리자 승인을 대기하며, 최대 7일 타임아웃 후 자동 만료된다.

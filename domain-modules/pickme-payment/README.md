@@ -72,7 +72,7 @@ Bean 등록은 `infrastructure/config/PaymentDomainConfig.java`에서 수행.
 ```
 pickme-payment/
 ├── api/              PaymentController, Request/Response DTO
-├── application/      PaymentService, PaymentEventHandler
+├── application/      PaymentService, PaymentEventHandler, PaymentCommandAdapter
 ├── domain/
 │   ├── model/        Payment, PaymentId, PaymentMethod, PaymentStatus, Money, PgResponse
 │   ├── event/        PaymentCompletedEvent, PaymentFailedEvent, RefundCompletedEvent
@@ -81,6 +81,15 @@ pickme-payment/
 └── infrastructure/
     ├── persistence/  JPA Entity, Mapper, Repository 구현체
     ├── external/     MockPgPaymentAdapter (PG 연동 + Circuit Breaker)
-    ├── messaging/    PaymentSagaConsumer
+    ├── messaging/    PaymentEventConsumer (OrderPlacedEvent/RefundEvent Temporal 시 스킵)
     └── config/       PaymentDomainConfig (Domain Service Bean 등록)
 ```
+
+## Temporal 연동
+
+`PaymentCommandAdapter`가 `PaymentCommandPort`를 구현. Activity 재시도 시 REQUESTED/PROCESSING 상태의 기존 결제도 성공으로 반환(멱등성).
+
+| 메서드 | 설명 | 멱등성 키 |
+|--------|------|----------|
+| `processPayment(orderId, ordererId, amount, method)` | PG 결제 처리 | `temporal-payment:{orderId}` |
+| `processRefund(orderId, refundAmount)` | PG 환불 처리 | `temporal-refund:{orderId}` |

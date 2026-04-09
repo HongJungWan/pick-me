@@ -50,7 +50,7 @@
 | `ProcessedEvent` | 처리 완료 이벤트 기록 (eventId PK) |
 | `IdempotencyFilter` | isDuplicate() / markProcessed() |
 
-모든 이벤트 핸들러에서 중복 처리를 방지합니다. Debezium CDC 전환 시 병렬 운영 기간에도 이벤트 중복을 안전하게 차단합니다.
+모든 이벤트 핸들러와 **Temporal CommandAdapter**에서 중복 처리를 방지합니다. Activity 재시도 시 비즈니스 키 기반 멱등성 키(`UUID.nameUUIDFromBytes("temporal-{operation}:{entityId}")`)로 중복 실행을 차단합니다.
 
 ## 분산 락
 
@@ -78,7 +78,7 @@
 | `DeadLetterEvent` | DLT 이벤트 DB 저장 |
 | `DeadLetterConsumer` | `pickme.dead-letter` 토픽 구독 |
 | `DeadLetterAdminController` | GET /api/v1/admin/dlt, POST /{eventId}/retry |
-| `SlackNotifier` | DLT 적재 시 Slack Webhook 알림 |
+| `SlackNotifier` | DLT 적재 + Temporal 워크플로우 실패 시 Slack Webhook 알림 (`sendAlert()` 범용 메서드 포함) |
 
 ## 데이터소스 라우팅
 

@@ -48,6 +48,7 @@ curl http://localhost:8888/pickme-payment/default
 | Redis 공통 | `application.yml` | host, port, 커넥션 풀 |
 | Timeout | `application.yml` | 서비스별 요청 타임아웃 |
 | Circuit Breaker | `application.yml` | Resilience4j 임계치, 슬라이딩 윈도우 |
+| Temporal | `application.yml` | `pickme.temporal.enabled` (Feature Flag), `target`, `namespace`, Task Queue, Workflow timeout |
 | Outbox Relay | `application.yml` | `pickme.outbox.relay.enabled` (CDC 전환 후 false) |
 | JWT Secret | `pickme-member.yml` | Access/Refresh 토큰 시크릿 |
 | Slack Webhook | `pickme-notification.yml` | DLT 알림용 Webhook URL |

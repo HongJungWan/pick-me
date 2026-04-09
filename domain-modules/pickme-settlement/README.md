@@ -51,7 +51,7 @@ CALCULATING → CONFIRMED → TRANSFER_REQUESTED → COMPLETED
 ```
 pickme-settlement/
 ├── api/              SettlementController, Request/Response DTO
-├── application/      SettlementService, SettlementEventHandler, ReconciliationBatch
+├── application/      SettlementService, SettlementEventHandler, SettlementCommandAdapter
 ├── domain/
 │   ├── model/        Settlement, SettlementId, SettlementStatus, SettlementPeriod
 │   ├── event/        SettlementCompletedEvent
@@ -61,3 +61,14 @@ pickme-settlement/
     ├── messaging/    SettlementEventConsumer
     └── snapshot/     SalesSnapshotEntity, PartnerSnapshotEntity (ETL Aggregate)
 ```
+
+## Temporal 연동
+
+`SettlementCommandAdapter`가 `SettlementCommandPort`를 구현하여 `SettlementReconciliationWorkflow` Activity에서 호출된다.
+
+| 메서드 | 설명 |
+|--------|------|
+| `fetchDailySnapshots(date)` | 일일 정산 스냅샷 조회 (읽기 전용) |
+| `reconcilePartner(partnerId, date)` | 파트너별 정산 검증 (읽기 전용) |
+
+기존 `SettlementService.reconciliationBatch()`의 @Scheduled cron 로직을 Temporal 워크플로우로 전환. 파트너별 개별 재시도와 불일치 Slack 알림을 지원한다.

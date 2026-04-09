@@ -40,7 +40,7 @@
 
 | 클래스 | 스케줄 | 역할 |
 |--------|--------|------|
-| `ConsistencyCheckBatch` | 매일 03:00 | 좀비 주문 감지 (PLACED/PAYMENT_PENDING > 2시간) + 주문-결제 정합성 검증 |
+| `ConsistencyCheckBatch` | 매일 03:00 | Temporal 모드: 고아 주문 탐지(5분 초과 PLACED) + 자동 워크플로우 재시작 / Kafka 모드: 좀비 주문 탐지(2시간 초과) + 주문-결제 정합성 검증 |
 | `ConsistencyFixController` | 수동 | POST /api/v1/admin/consistency/{orderId}/fix — 3가지 시나리오 보정 |
 
 보정 시나리오:
