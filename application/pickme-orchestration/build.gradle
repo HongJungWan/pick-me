@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':common:pickme-orchestration-api')
+    implementation project(':common:pickme-common')
 
     implementation libs.temporal.sdk
     // Temporal OpenTracing 연동은 Micrometer Brave 브릿지를 통해 자동 활성화됨

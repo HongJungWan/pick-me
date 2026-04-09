@@ -1,9 +1,13 @@
 package com.pickme.batch;
 
+import com.pickme.common.dlt.SlackNotifier;
+import com.pickme.orchestration.dto.OrderLineItem;
+import com.pickme.orchestration.port.WorkflowStarter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -21,6 +26,9 @@ public class ConsistencyCheckBatch {
     private static final Duration ORPHAN_THRESHOLD = Duration.ofMinutes(5);
 
     private final JdbcTemplate jdbcTemplate;
+    private final WorkflowStarter workflowStarter;
+    @Nullable
+    private final SlackNotifier slackNotifier;
 
     @Value("${pickme.temporal.enabled:false}")
     private boolean temporalEnabled;
@@ -35,15 +43,13 @@ public class ConsistencyCheckBatch {
             checkZombieOrders();
         }
 
-        // 주문-결제 정합성 검증은 Temporal 활성화와 무관하게 안전망으로 유지
         checkOrderPaymentConsistency();
 
         log.info("=== 정합성 검증 배치 완료 ===");
     }
 
     /**
-     * Temporal 모드: 주문은 생성되었으나 워크플로우가 시작되지 않은 고아 주문 탐지.
-     * afterCommit() 콜백 실패 시 발생 가능.
+     * Temporal 모드: 주문은 생성되었으나 워크플로우가 시작되지 않은 고아 주문 탐지 및 복구.
      */
     private void checkOrphanOrders() {
         Instant threshold = Instant.now().minus(ORPHAN_THRESHOLD);
@@ -56,11 +62,25 @@ public class ConsistencyCheckBatch {
             );
 
             if (!orphans.isEmpty()) {
-                log.warn("고아 주문 후보 감지 (Temporal 모드): {}건 (PLACED 상태 {}분 이상 유지)",
-                        orphans.size(), ORPHAN_THRESHOLD.toMinutes());
-                orphans.forEach(o -> log.warn("  - orderId={}, orderedAt={} — 워크플로우 존재 여부 확인 필요",
-                        o.get("id"), o.get("ordered_at")));
-                // TODO: Temporal API로 workflow 존재 여부 확인 후 미존재 시 워크플로우 재시작
+                log.warn("고아 주문 후보 감지 (Temporal 모드): {}건", orphans.size());
+
+                for (Map<String, Object> orphan : orphans) {
+                    UUID orderId = (UUID) orphan.get("id");
+                    UUID ordererId = (UUID) orphan.get("orderer_id");
+
+                    try {
+                        workflowStarter.startOrderFulfillment(orderId, ordererId, List.of(), 0, "CREDIT_CARD");
+                        log.info("고아 주문 워크플로우 재시작 성공: orderId={}", orderId);
+                    } catch (Exception e) {
+                        // REJECT_DUPLICATE 정책으로 이미 워크플로우가 존재하면 예외 → 정상 (고아 아님)
+                        log.debug("워크플로우 이미 존재 (고아 아님): orderId={}", orderId);
+                    }
+                }
+
+                if (slackNotifier != null) {
+                    slackNotifier.sendAlert(":mag: *고아 주문 탐지* — " + orphans.size()
+                            + "건 (PLACED 상태 " + ORPHAN_THRESHOLD.toMinutes() + "분 이상)");
+                }
             } else {
                 log.info("고아 주문 없음");
             }

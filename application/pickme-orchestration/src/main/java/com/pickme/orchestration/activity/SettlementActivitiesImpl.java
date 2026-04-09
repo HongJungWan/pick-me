@@ -1,10 +1,12 @@
 package com.pickme.orchestration.activity;
 
+import com.pickme.common.dlt.SlackNotifier;
 import com.pickme.orchestration.port.SettlementCommandPort;
 import com.pickme.orchestration.port.SettlementCommandPort.PartnerSettlementInfo;
 import com.pickme.orchestration.port.SettlementCommandPort.ReconciliationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -17,6 +19,8 @@ import java.util.UUID;
 public class SettlementActivitiesImpl implements SettlementActivities {
 
     private final SettlementCommandPort settlementCommandPort;
+    @Nullable
+    private final SlackNotifier slackNotifier;
 
     @Override
     public List<PartnerSettlementInfo> fetchDailySnapshots(LocalDate date) {
@@ -34,6 +38,12 @@ public class SettlementActivitiesImpl implements SettlementActivities {
     public void reportDiscrepancies(LocalDate date, List<String> discrepancies) {
         log.error("[Activity] 정산 불일치 보고: date={}, count={}", date, discrepancies.size());
         discrepancies.forEach(d -> log.error("  - {}", d));
-        // TODO: SlackNotifier 연동
+
+        if (slackNotifier != null) {
+            StringBuilder message = new StringBuilder(
+                    ":warning: *정산 불일치 감지* — " + date + " (" + discrepancies.size() + "건)\n");
+            discrepancies.forEach(d -> message.append("- ").append(d).append("\n"));
+            slackNotifier.sendAlert(message.toString());
+        }
     }
 }

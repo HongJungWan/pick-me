@@ -24,6 +24,18 @@ public class SlackNotifier {
         this.webhookUrl = webhookUrl;
     }
 
+    public void sendAlert(String message) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(Map.of("text", message), headers);
+            restTemplate.postForEntity(webhookUrl, request, String.class);
+            log.info("Slack 알림 발송 완료");
+        } catch (Exception e) {
+            log.warn("Slack 알림 발송 실패 (서비스 영향 없음): {}", e.getMessage());
+        }
+    }
+
     public void notifyDeadLetterEvent(DeadLetterEvent event) {
         try {
             String message = String.format(

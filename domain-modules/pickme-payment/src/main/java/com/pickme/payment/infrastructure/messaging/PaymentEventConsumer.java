@@ -43,12 +43,14 @@ public class PaymentEventConsumer {
                     }
                 }
                 case "OrderRefundRequestedEvent" -> {
-                    // 환불은 Phase 3 RefundWorkflow 전환까지 Kafka로 유지
-                    paymentEventHandler.handleOrderRefundRequested(
-                            eventId,
-                            UUID.fromString(root.path("orderId").asText()),
-                            root.path("refundAmount").asLong()
-                    );
+                    // Temporal 활성화 시 RefundWorkflow가 환불 처리를 대체
+                    if (!Boolean.parseBoolean(environment.getProperty("pickme.temporal.enabled", "false"))) {
+                        paymentEventHandler.handleOrderRefundRequested(
+                                eventId,
+                                UUID.fromString(root.path("orderId").asText()),
+                                root.path("refundAmount").asLong()
+                        );
+                    }
                 }
                 default -> log.debug("무시된 Order 이벤트: {}", eventType);
             }

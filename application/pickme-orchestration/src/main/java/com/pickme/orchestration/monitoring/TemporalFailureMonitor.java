@@ -1,12 +1,13 @@
 package com.pickme.orchestration.monitoring;
 
-import io.temporal.api.enums.v1.WorkflowExecutionStatus;
+import com.pickme.common.dlt.SlackNotifier;
 import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsRequest;
 import io.temporal.api.workflowservice.v1.ListWorkflowExecutionsResponse;
 import io.temporal.client.WorkflowClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Component;
 public class TemporalFailureMonitor {
 
     private final WorkflowClient workflowClient;
+    @Nullable
+    private final SlackNotifier slackNotifier;
 
     @Scheduled(fixedDelay = 300000) // 5분마다
     public void checkFailedWorkflows() {
@@ -36,13 +39,20 @@ public class TemporalFailureMonitor {
             int failedCount = failed.getExecutionsCount();
             if (failedCount > 0) {
                 log.error("실패/타임아웃 워크플로우 감지: {}건", failedCount);
-                failed.getExecutionsList().forEach(exec ->
-                        log.error("  - workflowId={}, status={}, startTime={}",
-                                exec.getExecution().getWorkflowId(),
-                                exec.getStatus(),
-                                exec.getStartTime())
-                );
-                // TODO: SlackNotifier 연동 — 기존 DeadLetterConsumer의 SlackNotifier 재사용
+
+                StringBuilder alertMessage = new StringBuilder(
+                        ":rotating_light: *Temporal 워크플로우 실패 감지* — " + failedCount + "건\n");
+
+                failed.getExecutionsList().forEach(exec -> {
+                    String detail = String.format("- workflowId: `%s`, status: `%s`",
+                            exec.getExecution().getWorkflowId(), exec.getStatus());
+                    log.error("  {}", detail);
+                    alertMessage.append(detail).append("\n");
+                });
+
+                if (slackNotifier != null) {
+                    slackNotifier.sendAlert(alertMessage.toString());
+                }
             } else {
                 log.debug("실패/타임아웃 워크플로우 없음");
             }

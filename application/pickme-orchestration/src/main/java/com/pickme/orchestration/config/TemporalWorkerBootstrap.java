@@ -13,6 +13,7 @@ import com.pickme.orchestration.workflow.SettlementReconciliationWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerOptions;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -49,17 +50,26 @@ public class TemporalWorkerBootstrap {
         }
         String mode = shadowMode ? "SHADOW" : "LIVE";
 
-        Worker orderSagaWorker = workerFactory.newWorker(properties.getTaskQueues().getOrderSaga());
+        WorkerOptions highThroughputOptions = WorkerOptions.newBuilder()
+                .setMaxConcurrentActivityExecutionSize(200)
+                .setMaxConcurrentWorkflowTaskExecutionSize(200)
+                .build();
+        WorkerOptions lowThroughputOptions = WorkerOptions.newBuilder()
+                .setMaxConcurrentActivityExecutionSize(50)
+                .setMaxConcurrentWorkflowTaskExecutionSize(50)
+                .build();
+
+        Worker orderSagaWorker = workerFactory.newWorker(properties.getTaskQueues().getOrderSaga(), highThroughputOptions);
         orderSagaWorker.registerWorkflowImplementationTypes(OrderFulfillmentWorkflowImpl.class, OrderRefundWorkflowImpl.class);
         orderSagaWorker.registerActivitiesImplementations(orderSagaActivities, refundActivities);
 
-        // 정산 Worker
-        Worker settlementWorker = workerFactory.newWorker(properties.getTaskQueues().getSettlement());
+        // 정산 Worker (일일 배치, 낮은 동시성)
+        Worker settlementWorker = workerFactory.newWorker(properties.getTaskQueues().getSettlement(), lowThroughputOptions);
         settlementWorker.registerWorkflowImplementationTypes(SettlementReconciliationWorkflowImpl.class);
         settlementWorker.registerActivitiesImplementations(settlementActivities);
 
-        // 파트너 온보딩 Worker
-        Worker partnerWorker = workerFactory.newWorker(properties.getTaskQueues().getPartner());
+        // 파트너 온보딩 Worker (저빈도, 장기 대기)
+        Worker partnerWorker = workerFactory.newWorker(properties.getTaskQueues().getPartner(), lowThroughputOptions);
         partnerWorker.registerWorkflowImplementationTypes(PartnerOnboardingWorkflowImpl.class);
         partnerWorker.registerActivitiesImplementations(partnerActivities);
 
