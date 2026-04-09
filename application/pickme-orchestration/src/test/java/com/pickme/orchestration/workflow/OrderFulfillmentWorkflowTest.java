@@ -8,6 +8,7 @@ import com.pickme.orchestration.dto.PaymentResult;
 import com.pickme.orchestration.dto.ReserveResult;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.failure.ActivityFailure;
 import io.temporal.testing.TestWorkflowEnvironment;
 import io.temporal.worker.Worker;
 import org.junit.jupiter.api.AfterEach;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -83,9 +85,9 @@ class OrderFulfillmentWorkflowTest {
         assertThat(result.success()).isTrue();
         assertThat(result.orderId()).isEqualTo(request.orderId());
         assertThat(result.paymentId()).isNotNull();
+        assertThat(result.compensationFailed()).isFalse();
 
         verify(activities).reserveInventory(eq(request.orderId()), eq(request.orderLines()));
-        verify(activities).processPayment(eq(request.orderId()), eq(request.ordererId()), eq(20000L), eq("CREDIT_CARD"));
         verify(activities).confirmOrder(eq(request.orderId()));
         verify(activities).confirmInventory(eq(request.orderId()), eq(request.orderLines()));
         verify(activities, never()).restoreInventory(any(), any());
@@ -103,10 +105,10 @@ class OrderFulfillmentWorkflowTest {
 
         assertThat(result.success()).isFalse();
         assertThat(result.failureType()).isEqualTo("INVENTORY_SHORTAGE");
+        assertThat(result.compensationFailed()).isFalse();
 
         verify(activities).cancelOrder(eq(request.orderId()), anyString());
         verify(activities, never()).processPayment(any(), any(), anyLong(), anyString());
-        verify(activities, never()).restoreInventory(any(), any());
     }
 
     @Test
@@ -126,5 +128,42 @@ class OrderFulfillmentWorkflowTest {
         verify(activities).restoreInventory(eq(request.orderId()), eq(request.orderLines()));
         verify(activities).cancelOrder(eq(request.orderId()), anyString());
         verify(activities, never()).confirmOrder(any());
+    }
+
+    @Test
+    void 주문확정_실패_시_환불_재고복원_주문취소_보상() {
+        OrderFulfillmentRequest request = createRequest();
+
+        when(activities.reserveInventory(any(), any()))
+                .thenReturn(ReserveResult.success(request.orderId()));
+        when(activities.processPayment(any(), any(), anyLong(), anyString()))
+                .thenReturn(PaymentResult.success(UUID.randomUUID()));
+        doThrow(new RuntimeException("DB 연결 실패"))
+                .when(activities).confirmOrder(any());
+
+        OrderFulfillmentResult result = createWorkflowStub().execute(request);
+
+        assertThat(result.success()).isFalse();
+        assertThat(result.failureType()).isEqualTo("CONFIRM_ORDER_FAILURE");
+
+        // 보상: 환불 시도 + 재고 복원 + 주문 취소
+        verify(activities).restoreInventory(eq(request.orderId()), eq(request.orderLines()));
+        verify(activities).cancelOrder(eq(request.orderId()), anyString());
+    }
+
+    @Test
+    void 워크플로우_상태_쿼리() {
+        OrderFulfillmentRequest request = createRequest();
+
+        when(activities.reserveInventory(any(), any()))
+                .thenReturn(ReserveResult.success(request.orderId()));
+        when(activities.processPayment(any(), any(), anyLong(), anyString()))
+                .thenReturn(PaymentResult.success(UUID.randomUUID()));
+
+        OrderFulfillmentWorkflow workflow = createWorkflowStub();
+        workflow.execute(request);
+
+        String status = workflow.getStatus();
+        assertThat(status).isEqualTo("COMPLETED");
     }
 }

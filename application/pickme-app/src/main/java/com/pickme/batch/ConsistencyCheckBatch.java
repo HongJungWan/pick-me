@@ -18,6 +18,7 @@ import java.util.Map;
 public class ConsistencyCheckBatch {
 
     private static final Duration ZOMBIE_THRESHOLD = Duration.ofHours(2);
+    private static final Duration ORPHAN_THRESHOLD = Duration.ofMinutes(5);
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -29,7 +30,7 @@ public class ConsistencyCheckBatch {
         log.info("=== 정합성 검증 배치 시작 ===");
 
         if (temporalEnabled) {
-            log.info("좀비 주문 검증 스킵 — Temporal 워크플로우 타임아웃이 대체");
+            checkOrphanOrders();
         } else {
             checkZombieOrders();
         }
@@ -38,6 +39,34 @@ public class ConsistencyCheckBatch {
         checkOrderPaymentConsistency();
 
         log.info("=== 정합성 검증 배치 완료 ===");
+    }
+
+    /**
+     * Temporal 모드: 주문은 생성되었으나 워크플로우가 시작되지 않은 고아 주문 탐지.
+     * afterCommit() 콜백 실패 시 발생 가능.
+     */
+    private void checkOrphanOrders() {
+        Instant threshold = Instant.now().minus(ORPHAN_THRESHOLD);
+
+        try {
+            List<Map<String, Object>> orphans = jdbcTemplate.queryForList(
+                    "SELECT id, orderer_id, order_status, ordered_at FROM order_schema.orders " +
+                    "WHERE order_status = 'PLACED' AND ordered_at < ?",
+                    java.sql.Timestamp.from(threshold)
+            );
+
+            if (!orphans.isEmpty()) {
+                log.warn("고아 주문 후보 감지 (Temporal 모드): {}건 (PLACED 상태 {}분 이상 유지)",
+                        orphans.size(), ORPHAN_THRESHOLD.toMinutes());
+                orphans.forEach(o -> log.warn("  - orderId={}, orderedAt={} — 워크플로우 존재 여부 확인 필요",
+                        o.get("id"), o.get("ordered_at")));
+                // TODO: Temporal API로 workflow 존재 여부 확인 후 미존재 시 워크플로우 재시작
+            } else {
+                log.info("고아 주문 없음");
+            }
+        } catch (Exception e) {
+            log.warn("고아 주문 검증 스킵 (테이블 미존재 가능): {}", e.getMessage());
+        }
     }
 
     private void checkZombieOrders() {
