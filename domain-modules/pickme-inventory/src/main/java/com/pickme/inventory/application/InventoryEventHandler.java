@@ -3,9 +3,9 @@ package com.pickme.inventory.application;
 import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.idempotency.IdempotencyFilter;
 import com.pickme.common.lock.DistributedLock;
+import com.pickme.inventory.application.port.StockCachePort;
 import com.pickme.inventory.domain.model.Stock;
 import com.pickme.inventory.domain.repository.StockRepository;
-import com.pickme.inventory.infrastructure.config.StockRedisService;
 import org.springframework.lang.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class InventoryEventHandler {
     private final DomainEventPublisher eventPublisher;
     private final IdempotencyFilter idempotencyFilter;
     @Nullable
-    private final StockRedisService stockRedisService;
+    private final StockCachePort stockCache;
 
     @Transactional
     public void handleProductRegistered(UUID eventId, UUID productId, String productName) {
@@ -57,7 +57,7 @@ public class InventoryEventHandler {
 
         stock.reserve(quantity, orderId);
         stockRepository.save(stock);
-        if (stockRedisService != null) stockRedisService.syncFromDb(productId, stock.getQuantity().getValue());
+        if (stockCache != null) stockCache.syncFromDb(productId, stock.getQuantity().getValue());
         eventPublisher.publishAll(stock);
 
         idempotencyFilter.markProcessed(eventId, "OrderPlacedEvent");
@@ -87,7 +87,7 @@ public class InventoryEventHandler {
 
         stock.cancel(quantity, orderId);
         stockRepository.save(stock);
-        if (stockRedisService != null) stockRedisService.syncFromDb(productId, stock.getQuantity().getValue());
+        if (stockCache != null) stockCache.syncFromDb(productId, stock.getQuantity().getValue());
         eventPublisher.publishAll(stock);
 
         idempotencyFilter.markProcessed(eventId, "OrderCancelledEvent");

@@ -11,6 +11,19 @@ dependencies {
     testImplementation project(':common:pickme-orchestration-api')
     testImplementation project(':application:pickme-orchestration')
 
+    // Phase 5: 인프라 모듈도 ArchUnit 분석 대상에 포함 (도메인 비의존 검증용)
+    testImplementation project(':application:pickme-gateway')
+    testImplementation project(':application:pickme-config-server')
+    testImplementation project(':application:pickme-discovery')
+
     testImplementation libs.archunit.junit5
     testImplementation libs.spring.boot.starter.web
+}
+
+// Phase 5: gateway/config-server/discovery 가 Spring Cloud BOM 의존성을 사용하므로
+// archunit 모듈에서도 클래스패스 해결을 위해 BOM 을 임포트한다.
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2024.0.1"
+    }
 }

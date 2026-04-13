@@ -3,9 +3,9 @@ package com.pickme.inventory.application;
 import com.pickme.common.event.DomainEventPublisher;
 import com.pickme.common.idempotency.IdempotencyFilter;
 import com.pickme.common.lock.DistributedLock;
+import com.pickme.inventory.application.port.StockCachePort;
 import com.pickme.inventory.domain.model.Stock;
 import com.pickme.inventory.domain.repository.StockRepository;
-import com.pickme.inventory.infrastructure.config.StockRedisService;
 import com.pickme.orchestration.dto.OrderLineItem;
 import com.pickme.orchestration.dto.ReserveResult;
 import com.pickme.orchestration.port.InventoryCommandPort;
@@ -33,7 +33,7 @@ public class InventoryCommandAdapter implements InventoryCommandPort {
     private final DomainEventPublisher eventPublisher;
     private final IdempotencyFilter idempotencyFilter;
     @Nullable
-    private final StockRedisService stockRedisService;
+    private final StockCachePort stockCache;
 
     @DistributedLock(key = "'lock:inventory:order:' + #orderId")
     @Transactional
@@ -61,8 +61,8 @@ public class InventoryCommandAdapter implements InventoryCommandPort {
 
             stock.reserve(item.quantity(), orderId);
             stockRepository.save(stock);
-            if (stockRedisService != null) {
-                stockRedisService.syncFromDb(item.productId(), stock.getQuantity().getValue());
+            if (stockCache != null) {
+                stockCache.syncFromDb(item.productId(), stock.getQuantity().getValue());
             }
             eventPublisher.publishAll(stock);
         }
@@ -115,8 +115,8 @@ public class InventoryCommandAdapter implements InventoryCommandPort {
 
             stock.cancel(item.quantity(), orderId);
             stockRepository.save(stock);
-            if (stockRedisService != null) {
-                stockRedisService.syncFromDb(item.productId(), stock.getQuantity().getValue());
+            if (stockCache != null) {
+                stockCache.syncFromDb(item.productId(), stock.getQuantity().getValue());
             }
             eventPublisher.publishAll(stock);
         }

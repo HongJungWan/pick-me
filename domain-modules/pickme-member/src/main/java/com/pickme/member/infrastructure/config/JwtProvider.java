@@ -1,5 +1,6 @@
 package com.pickme.member.infrastructure.config;
 
+import com.pickme.member.application.port.TokenIssuer;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -11,8 +12,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * JWT 기반 {@link TokenIssuer} 어댑터 + 토큰 검증 유틸.
+ * application 계층은 {@code TokenIssuer} 인터페이스만 의존한다.
+ */
 @Component
-public class JwtProvider {
+public class JwtProvider implements TokenIssuer {
 
     private static final long ACCESS_TOKEN_VALIDITY = 1000L * 60 * 30; // 30분
     private static final long REFRESH_TOKEN_VALIDITY = 1000L * 60 * 60 * 24 * 7; // 7일
@@ -23,10 +28,12 @@ public class JwtProvider {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Override
     public String createAccessToken(UUID memberId, String email) {
         return createToken(memberId, email, ACCESS_TOKEN_VALIDITY);
     }
 
+    @Override
     public String createRefreshToken(UUID memberId, String email) {
         return createToken(memberId, email, REFRESH_TOKEN_VALIDITY);
     }

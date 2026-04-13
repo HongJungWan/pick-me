@@ -12,6 +12,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.freeze.FreezingArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 /**
@@ -102,7 +103,7 @@ class DddTacticalPatternTest {
                             .that().areDeclaredInClassesThat()
                             .resideInAnyPackage(DomainModules.subPackageMatchers("domain.model"))
                             .should().haveNameStartingWith("set")
-                            .as("도메인 model 패키지의 클래스는 setter 메서드를 가지지 않는다")
+                            .as("DDD_NO_SETTER — 도메인 model 패키지의 클래스는 setter 메서드를 가지지 않는다")
                             .because("DDD: 도메인 객체 상태는 비즈니스 의미를 가진 메서드로만 변경한다 (Tell, Don't Ask).")
             );
 
@@ -118,7 +119,7 @@ class DddTacticalPatternTest {
                             .that(IS_AGGREGATE_ROOT)
                             .and().resideInAnyPackage(DomainModules.subPackageMatchers("domain.model"))
                             .should(HAVE_ONLY_PRIVATE_CONSTRUCTORS)
-                            .as("Aggregate Root 는 private 생성자만 가지고 정적 팩토리 메서드로 생성된다")
+                            .as("DDD_AGGREGATE_PRIVATE_CTOR — Aggregate Root 는 private 생성자만 가지고 정적 팩토리 메서드로 생성된다")
                             .because("DDD: Aggregate 생성 시점의 invariant 검증을 정적 팩토리에 강제한다.")
             );
 
@@ -135,7 +136,7 @@ class DddTacticalPatternTest {
                             .and().areNotEnums()
                             .and(IS_NOT_AGGREGATE_ROOT)
                             .should(HAVE_ONLY_FINAL_INSTANCE_FIELDS)
-                            .as("ValueObject 는 불변 (모든 인스턴스 필드가 final)")
+                            .as("DDD_VO_FINAL_FIELDS — ValueObject 는 불변 (모든 인스턴스 필드가 final)")
                             .because("DDD: ValueObject 는 동일성 비교를 위해 불변이어야 한다.")
             );
 
@@ -150,7 +151,23 @@ class DddTacticalPatternTest {
                             .that().implement("com.pickme.common.event.DomainEvent")
                             .and().resideInAnyPackage(DomainModules.packageMatchers())
                             .should().resideInAnyPackage(DomainModules.subPackageMatchers("domain.event"))
-                            .as("도메인 이벤트 클래스는 domain.event 패키지에만 위치한다")
+                            .as("DDD_DOMAIN_EVENT_LOCATION — 도메인 이벤트 클래스는 domain.event 패키지에만 위치한다")
                             .because("이벤트는 도메인 모델의 일부이며 한 곳에서 카탈로그화한다.")
             );
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 5. 도메인 model 은 Lombok 의 @Data / @Setter / @AllArgsConstructor 를 사용하지 않는다
+    //    (자동 생성된 setter / public 생성자가 DDD 불변성·캡슐화 원칙을 위반한다)
+    //    현재 위반 0건 — 엄격 적용
+    // ─────────────────────────────────────────────────────────────────────
+
+    @ArchTest
+    static final ArchRule 도메인_model은_Lombok_Data_Setter_AllArgsConstructor를_사용하지_않는다 =
+            noClasses()
+                    .that().resideInAnyPackage(DomainModules.subPackageMatchers("domain.model"))
+                    .should().beAnnotatedWith("lombok.Data")
+                    .orShould().beAnnotatedWith("lombok.Setter")
+                    .orShould().beAnnotatedWith("lombok.AllArgsConstructor")
+                    .because("@Data 는 setter 자동 생성, @AllArgsConstructor 는 public 생성자 자동 생성으로 "
+                            + "DDD 의 불변성·캡슐화 원칙을 위반한다. 도메인 model 은 @Getter + 명시 생성자만 사용한다.");
 }

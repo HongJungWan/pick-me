@@ -36,22 +36,45 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 @ArchTestBase
 class IntraDomainLayeringTest {
 
-    /** 단일 도메인 모듈에 대한 레이어드 아키텍처 규칙을 생성한다. */
+    /**
+     * 단일 도메인 모듈에 대한 레이어드 아키텍처 규칙을 생성한다.
+     *
+     * <h3>5계층 정의</h3>
+     * <ul>
+     *   <li>API ── HTTP 진입점</li>
+     *   <li>Application ── 유스케이스 / EventHandler / CommandAdapter</li>
+     *   <li>Domain ── Aggregate / VO / Domain Event / Repository 포트</li>
+     *   <li>Infrastructure ── persistence / config / messaging / external (영속화·메시징·외부 호출)</li>
+     *   <li>Snapshot (optional) ── infrastructure.snapshot 의 read-model entity / repository.
+     *       CQRS 의 read-side 라 application 이 직접 사용해도 위반이 아님.</li>
+     * </ul>
+     *
+     * <p>Snapshot 을 Infrastructure 와 분리한 이유: 기존 134줄 베이스라인의 약 80%
+     * 가 application → infrastructure.snapshot 직접 의존이며, 이는 의도된 read-model
+     * 패턴이라 layered 규칙이 이를 정상으로 인식하도록 layer 를 명시 분리.</p>
+     */
     private static ArchRule layeringRuleFor(String module) {
         String base = "com.pickme." + module;
         return Architectures.layeredArchitecture()
                 .consideringOnlyDependenciesInAnyPackage(base + "..")
-                .layer("API").definedBy(base + ".api..")
+                .optionalLayer("API").definedBy(base + ".api..")
                 .layer("Application").definedBy(base + ".application..")
                 .layer("Domain").definedBy(base + ".domain..")
-                .layer("Infrastructure").definedBy(base + ".infrastructure..")
+                .layer("Infrastructure").definedBy(
+                        base + ".infrastructure.persistence..",
+                        base + ".infrastructure.config..",
+                        base + ".infrastructure.messaging..",
+                        base + ".infrastructure.external..")
+                .optionalLayer("Snapshot").definedBy(base + ".infrastructure.snapshot..")
                 .whereLayer("API").mayOnlyAccessLayers("Application", "Domain")
-                .whereLayer("Application").mayOnlyAccessLayers("Domain")
+                .whereLayer("Application").mayOnlyAccessLayers("Domain", "Snapshot")
                 .whereLayer("Infrastructure").mayOnlyAccessLayers("Application", "Domain")
+                .whereLayer("Snapshot").mayOnlyAccessLayers("Domain")
                 .whereLayer("Domain").mayNotAccessAnyLayer()
-                .as(module + " 도메인 내부 계층 의존성 규칙")
-                .because("DDD 계층 규칙: Domain은 외부 계층 참조 금지, "
-                        + "Application은 Infrastructure를 직접 사용하지 않는다.");
+                .as("LAYERING_" + module.toUpperCase()
+                        + " — " + module + " 도메인 내부 계층 의존성 규칙")
+                .because("DDD 계층 규칙: Domain 외부 계층 참조 금지, "
+                        + "Application 은 Infrastructure 직접 사용 금지 (단 Snapshot read-model 은 허용).");
     }
 
     // ─────────────────────────────────────────────────────────────────────

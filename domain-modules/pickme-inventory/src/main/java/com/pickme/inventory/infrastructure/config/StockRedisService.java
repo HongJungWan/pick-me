@@ -1,5 +1,6 @@
 package com.pickme.inventory.infrastructure.config;
 
+import com.pickme.inventory.application.port.StockCachePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -10,11 +11,15 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.UUID;
 
+/**
+ * Redis 기반 {@link StockCachePort} 어댑터 + 추가 재고 연산 유틸.
+ * application 계층은 {@code StockCachePort} 인터페이스만 의존한다.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnBean(StringRedisTemplate.class)
-public class StockRedisService {
+public class StockRedisService implements StockCachePort {
 
     private final StringRedisTemplate redisTemplate;
 
@@ -70,6 +75,7 @@ public class StockRedisService {
         log.debug("Redis 재고 복원: productId={}, qty={}", productId, quantity);
     }
 
+    @Override
     public void syncFromDb(UUID productId, int quantity) {
         redisTemplate.opsForValue().set(stockKey(productId), String.valueOf(quantity));
     }
