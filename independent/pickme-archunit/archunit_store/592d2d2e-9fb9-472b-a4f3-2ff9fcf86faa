@@ -1,0 +1,2 @@
+ValueObject 의 인스턴스 필드가 final 이 아니다: com.pickme.notification.domain.model.Notification.sendStatus
+ValueObject 의 인스턴스 필드가 final 이 아니다: com.pickme.notification.domain.model.Notification.sentAt
