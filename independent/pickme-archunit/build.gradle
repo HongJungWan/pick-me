@@ -1,3 +1,11 @@
+// ArchUnit FreezingArchRule이 archunit_store/ 경로를 JVM user.dir 기준으로 해석한다.
+// CI(GitHub Actions)에서 user.dir이 프로젝트 루트가 되면 store를 찾지 못해
+// frozen 위반 67건이 전부 "신규 위반"으로 감지되어 테스트가 실패한다.
+// → 테스트 실행 시 workingDir을 이 모듈 디렉토리로 고정하여 경로를 보장한다.
+tasks.named('test') {
+    workingDir = project.projectDir
+}
+
 dependencies {
     testImplementation project(':common:pickme-common')
     testImplementation project(':domain-modules:pickme-order')

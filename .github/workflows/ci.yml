@@ -28,6 +28,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Verify ArchUnit Freeze Store
+        run: |
+          STORE="independent/pickme-archunit/archunit_store"
+          if [ ! -f "$STORE/stored.rules" ]; then
+            echo "::error::ArchUnit freeze store not found at $STORE/stored.rules"
+            exit 1
+          fi
+          echo "Freeze store OK: $(ls $STORE | wc -l) files"
+
       - name: Build and Test (All Modules)
         run: ./gradlew clean build
 
@@ -58,6 +67,15 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Verify ArchUnit Freeze Store
+        run: |
+          STORE="independent/pickme-archunit/archunit_store"
+          if [ ! -f "$STORE/stored.rules" ]; then
+            echo "::error::ArchUnit freeze store not found at $STORE/stored.rules"
+            exit 1
+          fi
+          echo "Freeze store OK: $(ls $STORE | wc -l) files"
 
       - name: Detect Changed Modules
         id: changes
