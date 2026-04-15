@@ -1,12 +1,23 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file_path=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file_path\" ] && echo \"$file_path\" | grep -qE '/domain/(model|event|repository)/' ; then echo '[Hook:WARN] domain/ 패키지 수정 - DomainPurityTest 위반 주의 (Spring/JPA 어노테이션 금지)' >&2; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "file_path=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file_path\" ] && echo \"$file_path\" | grep -q '\\.java$'; then echo \"[Hook] Java 파일 수정됨: $file_path — ArchUnit 테스트 권장: ./gradlew :independent:pickme-archunit:test\"; fi"
+            "command": "file_path=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file_path\" ] && echo \"$file_path\" | grep -q '\\.java$'; then layer=''; echo \"$file_path\" | grep -q '/domain/' && layer='domain'; echo \"$file_path\" | grep -q '/infrastructure/' && layer='infra'; echo \"$file_path\" | grep -q '/application/' && layer='app'; echo \"$file_path\" | grep -q '/api/' && layer='api'; if [ -n \"$layer\" ]; then echo \"[Hook] $layer 계층 파일 수정 - ArchUnit 검증 권장: ./gradlew :independent:pickme-archunit:test\"; fi; fi"
           }
         ]
       }
@@ -16,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '[Pick-me] 작업 완료 체크리스트: 1) ./gradlew clean build 2) ArchUnit 테스트 3) 도메인 순수성 확인'"
+            "command": "echo '[Pick-me 체크리스트] 1) ./gradlew clean build  2) ArchUnit 38규칙 테스트  3) domain/ 순수성  4) Outbox 패턴 준수  5) EVENT-CATALOG.md 갱신 여부'"
           }
         ]
       }
