@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file_path=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file_path\" ] && echo \"$file_path\" | grep -q '\\.java$'; then echo \"[Hook] Java 파일 수정됨: $file_path — ArchUnit 테스트 권장: ./gradlew :independent:pickme-archunit:test\"; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '[Pick-me] 작업 완료 체크리스트: 1) ./gradlew clean build 2) ArchUnit 테스트 3) 도메인 순수성 확인'"
+          }
+        ]
+      }
+    ]
+  }
+}
