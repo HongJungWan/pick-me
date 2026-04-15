@@ -1,13 +1,15 @@
 # ─── Gradle ───
 .gradle/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 
 # ─── Java ───
 *.class
 *.jar
 *.war
 *.ear
+
+# Gradle Wrapper JAR은 CI 빌드에 필수이므로 *.jar 규칙 이후에 예외 선언
+!gradle/wrapper/gradle-wrapper.jar
 hs_err_pid*
 replay_pid*
 
