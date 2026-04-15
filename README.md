@@ -83,6 +83,7 @@
 | Config | Spring Cloud Config Server |
 | Discovery | Spring Cloud Netflix Eureka |
 | CI | GitHub Actions |
+| AI Code Assistant | Claude Code (Harness: Commands, Rules, Hooks) |
 
 ---
 
@@ -315,3 +316,53 @@ docker compose -f docker-compose.msa.yml up -d --build
 | Domain Service | PaymentProcessingService (도메인 순수) |
 | Domain Event | Aggregate 내부 발행, DomainEventPublisher 단일 컴포넌트 |
 | 도메인 순수성 | ArchUnit 강제 — Spring/JPA 어노테이션 누출 0건 |
+
+---
+
+## Claude Code 하네스 (AI 아키텍처 가드레일)
+
+ArchUnit이 CI 빌드 시점에 아키텍처를 강제한다면, Claude Code 하네스는 **개발 시점에 MSA/EDA/DDD 규칙을 가이드**한다.
+
+```
+.claude/
+├── commands/                          ← 슬래시 명령으로 호출하는 워크플로우 템플릿
+│   ├── analyze-domain.md                 /analyze-domain {모듈}
+│   ├── check-architecture.md             /check-architecture
+│   ├── review-code.md                    /review-code {대상}
+│   └── write-acceptance-test.md          /write-acceptance-test {시나리오}
+├── rules/                             ← 파일 패턴 매칭 시 자동 주입되는 계층별 규칙
+│   ├── domain-layer.md                   **/domain/**/*.java
+│   ├── application-layer.md              **/application/**/*.java
+│   ├── infrastructure-layer.md           **/infrastructure/**/*.java
+│   └── test-patterns.md                  **/src/test/**/*.java
+└── settings.json                      ← Hooks (PreToolUse, PostToolUse, Stop)
+CLAUDE.md                              ← 프로젝트 개요 (매 세션 자동 로드)
+```
+
+### 3계층 가드레일
+
+| 계층 | 파일 | 강제성 | 적용 시점 |
+|------|------|--------|-----------|
+| **CLAUDE.md** | 프로젝트 개요 | 권고 (읽기만) | 매 세션 자동 로드 |
+| **Rules** | 계층별 작성 규칙 | 조건부 주입 | 매칭 파일 편집 시만 로드 |
+| **Hooks** | 자동 검증/알림 | **강제 실행** | 도구 실행 전/후, 작업 완료 시 |
+
+### Commands
+
+| 명령 | 용도 |
+|------|------|
+| `/analyze-domain order` | 특정 도메인 모듈의 구조·DDD 전술·EDA 패턴을 3단계 Deep Dive 분석 |
+| `/check-architecture` | ArchUnit 38개 규칙 실행 + MSA 격리 + EDA 정합성 + 부채 현황 종합 점검 |
+| `/review-code {대상}` | MSA 8항목 + EDA 12항목 + DDD 16항목 = **36개 체크리스트** 기반 코드 리뷰 |
+| `/write-acceptance-test {시나리오}` | BDD 인수 테스트 생성 (상태전이·Outbox·멱등성·이벤트핸들러·분산락 5계층 검증) |
+
+### Rules × ArchUnit 연동
+
+| Rule 파일 | 편집 대상 | 연동하는 ArchUnit 규칙 |
+|-----------|----------|----------------------|
+| `domain-layer.md` | `domain/**/*.java` | DomainPurityTest (4), DddTacticalPatternTest (5) |
+| `application-layer.md` | `application/**/*.java` | IntraDomainLayeringTest, NamingConventionTest |
+| `infrastructure-layer.md` | `infrastructure/**/*.java` | IntraDomainLayeringTest, ModuleBoundaryTest |
+| `test-patterns.md` | `src/test/**/*.java` | BDD 컨벤션, Outbox/멱등성 검증 가이드 |
+
+ArchUnit은 **위반을 사후 차단**하고, Rules는 **위반을 사전 방지**하는 상호 보완 관계이다.
